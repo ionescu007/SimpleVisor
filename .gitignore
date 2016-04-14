@@ -3,3 +3,4 @@ shv.sdf
 x64/Optimized
 *.suo
 *.user
+/shv.VC.db
