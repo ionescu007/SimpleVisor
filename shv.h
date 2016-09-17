@@ -41,6 +41,7 @@ typedef struct _SHV_VP_STATE
     UINT16 ExitReason;
     UINT8 ExitVm;
 } SHV_VP_STATE, *PSHV_VP_STATE;
+typedef const SHV_VP_STATE *PCSHV_VP_STATE;
 
 typedef struct _SHV_CALLBACK_CONTEXT
 {
@@ -60,19 +61,19 @@ ShvVmxEntry (
 
 INT32
 ShvVmxLaunchOnVp (
-    _In_ PSHV_VP_DATA VpData
+    _Inout_ PSHV_VP_DATA const VpData
     );
 
 VOID
 ShvUtilConvertGdtEntry (
     _In_ VOID* GdtBase,
-    _In_ UINT16 Offset,
-    _Out_ PVMX_GDTENTRY64 VmxGdtEntry
+    _In_ const UINT16 Offset,
+    _Out_ PVMX_GDTENTRY64 const VmxGdtEntry
     );
 
 UINT32
 ShvUtilAdjustMsr (
-    _In_ LARGE_INTEGER ControlValue,
+    _In_ const LARGE_INTEGER ControlValue,
     _In_ UINT32 DesiredValue
     );
 
@@ -83,7 +84,7 @@ ShvVpAllocateData (
 
 VOID
 ShvVpFreeData  (
-    _In_ PSHV_VP_DATA Data,
+    _In_ _Frees_ptr_ PSHV_VP_DATA Data,
     _In_ UINT32 CpuCount
     );
 
@@ -99,7 +100,7 @@ ShvVmxProbe (
 
 VOID
 ShvVmxEptInitialize (
-    _In_ PSHV_VP_DATA VpData
+    _Inout_ PSHV_VP_DATA const VpData
     );
 
 DECLSPEC_NORETURN
@@ -115,22 +116,22 @@ DECLSPEC_NORETURN
 VOID
 __cdecl
 ShvOsRestoreContext (
-    _In_ PCONTEXT ContextRecord
+    _In_ PCONTEXT const ContextRecord
     );
 
 VOID
 ShvOsCaptureContext (
-    _In_ PCONTEXT ContextRecord
+    _Out_ PCONTEXT ContextRecord
     );
 
 VOID
 ShvOsUnprepareProcessor (
-    _In_ PSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA VpData
     );
 
 INT32
 ShvOsPrepareProcessor (
-    _In_ PSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA VpData
     );
 
 INT32
@@ -145,10 +146,11 @@ ShvOsGetCurrentProcessorNumber (
 
 VOID
 ShvOsFreeContiguousAlignedMemory (
-    _In_ VOID* BaseAddress,
+    _In_ _Post_ptr_invalid_ VOID* BaseAddress,
     _In_ size_t Size
     );
 
+_When_ (return != NULL, _Post_writable_byte_size_ (Size))
 VOID*
 ShvOsAllocateContigousAlignedMemory (
     _In_ size_t Size
@@ -162,13 +164,13 @@ ShvOsGetPhysicalAddress (
 #ifndef __BASE_H__
 VOID
 ShvOsDebugPrint (
-    _In_ const char* Format,
+    _In_z_ _Printf_format_string_ const char* Format,
     ...
     );
 #else
 VOID
 ShvOsDebugPrintWide (
-    _In_ const CHAR16* Format,
+    _In_z_ _Printf_format_string_ const CHAR16* Format,
     ...
     );
 #define ShvOsDebugPrint(format, ...) ShvOsDebugPrintWide(_CRT_WIDE(format), __VA_ARGS__)
@@ -176,8 +178,8 @@ ShvOsDebugPrintWide (
 
 VOID
 ShvOsRunCallbackOnProcessors (
-    _In_ PSHV_CPU_CALLBACK Routine,
-    _In_opt_ VOID* Context
+    _In_ SHV_CPU_CALLBACK *Routine,
+    _Inout_opt_ VOID* Context
     );
 
 extern PSHV_VP_DATA* ShvGlobalData;

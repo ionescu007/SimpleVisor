@@ -24,7 +24,7 @@ Environment:
 
 VOID
 ShvVmxEptInitialize (
-    _In_ PSHV_VP_DATA VpData
+    _Inout_ PSHV_VP_DATA const VpData
     )
 {
     UINT64 i;
@@ -55,10 +55,10 @@ ShvVmxEptInitialize (
 
 UINT8
 ShvVmxEnterRootModeOnVp (
-    _In_ PSHV_VP_DATA VpData
+    _Inout_ PSHV_VP_DATA const VpData
     )
 {
-    PSHV_SPECIAL_REGISTERS Registers = &VpData->SpecialRegisters;
+    PSHV_SPECIAL_REGISTERS const Registers = &VpData->SpecialRegisters;
 
     //
     // Ensure the the VMCS can fit into a single page
@@ -161,13 +161,12 @@ ShvVmxEnterRootModeOnVp (
 
 VOID
 ShvVmxSetupVmcsForVp (
-    _In_ PSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA const VpData
     )
 {
-    PSHV_SPECIAL_REGISTERS state = &VpData->SpecialRegisters;
-    PCONTEXT context = &VpData->ContextFrame;
+    PCSHV_SPECIAL_REGISTERS const state = &VpData->SpecialRegisters;
+    const CONTEXT *const context = &VpData->ContextFrame;
     VMX_GDTENTRY64 vmxGdtEntry;
-    VMX_EPTP vmxEptp;
 
     //
     // Begin by setting the link pointer to the required value for 4KB VMCS.
@@ -182,6 +181,7 @@ ShvVmxSetupVmcsForVp (
         //
         // Configure the EPTP
         //
+        VMX_EPTP vmxEptp;
         vmxEptp.AsUlonglong = 0;
         vmxEptp.PageWalkLength = 3;
         vmxEptp.Type = MTRR_TYPE_WB;
@@ -444,7 +444,7 @@ ShvVmxProbe (
 
 INT32
 ShvVmxLaunchOnVp (
-    _In_ PSHV_VP_DATA VpData
+    _Inout_ PSHV_VP_DATA const VpData
     )
 {
     UINT32 i;

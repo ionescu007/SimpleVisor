@@ -56,7 +56,7 @@ VOID
 __cdecl
 RtlRestoreContext (
     _In_ PCONTEXT ContextRecord,
-    _In_opt_ struct _EXCEPTION_RECORD * ExceptionRecord
+    _In_opt_ PEXCEPTION_RECORD ExceptionRecord
     );
 
 typedef struct _SHV_DPC_CONTEXT
@@ -70,14 +70,14 @@ typedef struct _SHV_DPC_CONTEXT
 
 VOID
 ShvVmxCleanup (
-    _In_ UINT16 Data,
-    _In_ UINT16 Teb
+    _In_ const UINT16 Data,
+    _In_ const UINT16 Teb
     );
 
 NTSTATUS
 FORCEINLINE
 ShvOsErrorToError (
-    INT32 Error
+    const INT32 Error
     )
 {
     //
@@ -109,12 +109,12 @@ ShvOsErrorToError (
 VOID
 ShvOsDpcRoutine (
     _In_ struct _KDPC *Dpc,
-    _In_opt_ PVOID DeferredContext,
-    _In_opt_ PVOID SystemArgument1,
-    _In_opt_ PVOID SystemArgument2
+    _In_ PVOID DeferredContext,
+    _In_ PVOID SystemArgument1,
+    _In_ PVOID SystemArgument2
     )
 {
-    PSHV_DPC_CONTEXT dpcContext = DeferredContext;
+    PSHV_DPC_CONTEXT const dpcContext = DeferredContext;
     UNREFERENCED_PARAMETER(Dpc);
 
     //
@@ -153,7 +153,7 @@ ShvOsDpcRoutine (
 
 VOID
 ShvOsPrepareProcessor (
-    _In_ PSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA VpData
     )
 {
     //
@@ -165,7 +165,7 @@ ShvOsPrepareProcessor (
 
 VOID
 ShvOsUnprepareProcessor (
-    _In_ PSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA const VpData
     )
 {
     //
@@ -180,9 +180,12 @@ ShvOsUnprepareProcessor (
     __lidt(&VpData->SpecialRegisters.Idtr.Limit);
 }
 
+//
+// Is there supposed to be a size parameter?
+//
 VOID
 ShvOsFreeContiguousAlignedMemory (
-    _In_ PVOID BaseAddress
+    _In_ _Post_ptr_invalid_ PVOID const BaseAddress
     )
 {
     //
@@ -191,9 +194,10 @@ ShvOsFreeContiguousAlignedMemory (
     MmFreeContiguousMemory(BaseAddress);
 }
 
+_When_(return != NULL, _Post_writable_byte_size_(Size))
 PVOID
 ShvOsAllocateContigousAlignedMemory (
-    _In_ SIZE_T Size
+    _In_ SIZE_T const Size
     )
 {
     PHYSICAL_ADDRESS lowest, highest;
@@ -218,19 +222,23 @@ ShvOsAllocateContigousAlignedMemory (
 
 ULONGLONG
 ShvOsGetPhysicalAddress (
-    _In_ PVOID BaseAddress
+    _In_ VOID *const BaseAddress
     )
 {
     //
     // Let the memory manager convert it
+    //
+
+    //
+    // is MmGetPhysicalAddress incorrectly non-const?
     //
     return MmGetPhysicalAddress(BaseAddress).QuadPart;
 }
 
 VOID
 ShvOsRunCallbackOnProcessors (
-    _In_ PSHV_CPU_CALLBACK Routine,
-    _In_opt_ PVOID Context
+    _In_ SHV_CPU_CALLBACK *const Routine,
+    _Inout_opt_ PVOID const Context
     )
 {
     SHV_DPC_CONTEXT dpcContext;
@@ -247,18 +255,22 @@ DECLSPEC_NORETURN
 VOID
 __cdecl
 ShvOsRestoreContext (
-    _In_ PCONTEXT ContextRecord
+    _In_ PCONTEXT const ContextRecord
     )
 {
     //
     // Windows provides a nice OS function to do this
+    //
+
+    //
+    // is RtlRestoreContext correctly non-const?
     //
     RtlRestoreContext(ContextRecord, NULL);
 }
 
 VOID
 ShvOsCaptureContext (
-    _In_ PCONTEXT ContextRecord
+    _Out_ PCONTEXT const ContextRecord
     )
 {
     //
@@ -291,7 +303,7 @@ ShvOsGetActiveProcessorCount (
 
 VOID
 ShvOsDebugPrint (
-    _In_ PCCH Format,
+    _In_z_ _Printf_format_string_ PCCH const Format,
     ...
     )
 {
@@ -305,6 +317,8 @@ ShvOsDebugPrint (
     va_end(arglist);
 }
 
+DRIVER_UNLOAD DriverUnload;
+
 VOID
 DriverUnload (
     _In_ PDRIVER_OBJECT DriverObject
@@ -317,6 +331,8 @@ DriverUnload (
     //
     ShvUnload();
 }
+
+DRIVER_INITIALIZE DriverEntry;
 
 NTSTATUS
 DriverEntry (

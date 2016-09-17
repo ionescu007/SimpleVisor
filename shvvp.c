@@ -57,7 +57,7 @@ ShvIsOurHypervisorPresent (
 
 VOID
 ShvCaptureSpecialRegisters (
-    _In_ PSHV_SPECIAL_REGISTERS SpecialRegisters
+    _Out_ PSHV_SPECIAL_REGISTERS const SpecialRegisters
     )
 {
     //
@@ -111,7 +111,7 @@ ShvVpRestoreAfterLaunch (
 
 INT32
 ShvVpInitialize (
-    _In_ PSHV_VP_DATA Data
+    _Inout_ PSHV_VP_DATA const Data
     )
 {
     INT32 status;
@@ -157,7 +157,7 @@ ShvVpInitialize (
 
 VOID
 ShvVpUnloadCallback (
-    _In_ PSHV_CALLBACK_CONTEXT Context
+    _Inout_ PSHV_CALLBACK_CONTEXT const Context
     )
 {
     INT32 cpuInfo[4];
@@ -209,7 +209,7 @@ ShvVpAllocateData (
 
 VOID
 ShvVpFreeData (
-    _In_ PSHV_VP_DATA Data,
+    _In_ _Frees_ptr_ PSHV_VP_DATA Data,
     _In_ UINT32 CpuCount
     )
 {
@@ -221,7 +221,7 @@ ShvVpFreeData (
 
 VOID
 ShvVpLoadCallback (
-    _In_ PSHV_CALLBACK_CONTEXT Context
+    _Inout_ PSHV_CALLBACK_CONTEXT const Context
     )
 {
     PSHV_VP_DATA vpData;
