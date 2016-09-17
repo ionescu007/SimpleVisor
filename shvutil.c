@@ -24,9 +24,9 @@ Environment:
 
 VOID
 ShvUtilConvertGdtEntry (
-    _In_ VOID* GdtBase,
-    _In_ UINT16 Selector,
-    _Out_ PVMX_GDTENTRY64 VmxGdtEntry
+    _In_ VOID* const GdtBase,
+    _In_ const UINT16 Selector,
+    _Out_ PVMX_GDTENTRY64 const VmxGdtEntry
     )
 {
     PKGDTENTRY64 gdtEntry;
@@ -90,7 +90,7 @@ ShvUtilConvertGdtEntry (
 
 UINT32
 ShvUtilAdjustMsr (
-    _In_ LARGE_INTEGER ControlValue,
+    _In_ const LARGE_INTEGER ControlValue,
     _In_ UINT32 DesiredValue
     )
 {

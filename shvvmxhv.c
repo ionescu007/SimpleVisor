@@ -41,7 +41,7 @@ ShvVmxResume (
 uintptr_t
 FORCEINLINE
 ShvVmxRead (
-    _In_ UINT32 VmcsFieldId
+    _In_ _In_range_(VIRTUAL_PROCESSOR_ID, HOST_RIP) _Notliteral_ const UINT32 VmcsFieldId
     )
 {
     size_t FieldData;
@@ -96,7 +96,7 @@ ShvVmxHandleInvd (
 
 VOID
 ShvVmxHandleCpuid (
-    _In_ PSHV_VP_STATE VpState
+    _Inout_ PSHV_VP_STATE const VpState
     )
 {
     INT32 cpu_info[4];
@@ -151,7 +151,7 @@ ShvVmxHandleCpuid (
 
 VOID
 ShvVmxHandleXsetbv (
-    _In_ PSHV_VP_STATE VpState
+    _In_ PCSHV_VP_STATE const VpState
     )
 {
     //
@@ -165,7 +165,7 @@ ShvVmxHandleXsetbv (
 
 VOID
 ShvVmxHandleVmx (
-    _In_ PSHV_VP_STATE VpState
+    _Inout_ PSHV_VP_STATE const VpState
     )
 {
     //
@@ -181,7 +181,7 @@ ShvVmxHandleVmx (
 
 VOID
 ShvVmxHandleExit (
-    _In_ PSHV_VP_STATE VpState
+    _Inout_ PSHV_VP_STATE const VpState
     )
 {
     //
@@ -230,11 +230,11 @@ ShvVmxHandleExit (
 DECLSPEC_NORETURN
 VOID
 ShvVmxEntryHandler (
-    _In_ PCONTEXT Context
+    _Inout_ PCONTEXT const Context
     )
 {
     SHV_VP_STATE guestContext;
-    PSHV_VP_DATA vpData;
+    PCSHV_VP_DATA vpData;
 
     //
     // Because we had to use RCX when calling ShvOsCaptureContext, its value
@@ -246,7 +246,7 @@ ShvVmxEntryHandler (
     //
     // Get the per-VP data for this processor.
     //
-    vpData = (VOID*)((uintptr_t)(Context + 1) - KERNEL_STACK_SIZE);
+    vpData = (const VOID*)((uintptr_t)(Context + 1) - KERNEL_STACK_SIZE);
 
     //
     // Build a little stack context to make it easier to keep track of certain
