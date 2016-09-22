@@ -35,7 +35,7 @@ struct _SHV_CALLBACK_CONTEXT;
 typedef
 void
 SHV_CPU_CALLBACK (
-    _Inout_ struct _SHV_CALLBACK_CONTEXT* const Context
+    _Inout_ struct _SHV_CALLBACK_CONTEXT* CONST Context
     );
 typedef SHV_CPU_CALLBACK *PSHV_CPU_CALLBACK;
 
@@ -52,7 +52,7 @@ typedef struct _SHV_SPECIAL_REGISTERS
     KDESCRIPTOR Idtr;
     KDESCRIPTOR Gdtr;
 } SHV_SPECIAL_REGISTERS, *PSHV_SPECIAL_REGISTERS;
-typedef const SHV_SPECIAL_REGISTERS *PCSHV_SPECIAL_REGISTERS;
+typedef CONST SHV_SPECIAL_REGISTERS *PCSHV_SPECIAL_REGISTERS;
 
 typedef struct _SHV_VP_DATA
 {
@@ -80,7 +80,7 @@ typedef struct _SHV_VP_DATA
     DECLSPEC_ALIGN(PAGE_SIZE) VMX_VMCS VmxOn;
     DECLSPEC_ALIGN(PAGE_SIZE) VMX_VMCS Vmcs;
 } SHV_VP_DATA, *PSHV_VP_DATA;
-typedef const SHV_VP_DATA *PCSHV_VP_DATA;
+typedef CONST SHV_VP_DATA *PCSHV_VP_DATA;
 
 C_ASSERT(sizeof(SHV_VP_DATA) == (KERNEL_STACK_SIZE + 5 * PAGE_SIZE));
 
@@ -96,12 +96,12 @@ _ltr (
 
 VOID
 _str (
-    _Out_ UINT16* Tr
+    _Out_ UINT16* CONST Tr
     );
 
 VOID
 __lgdt (
-    _In_ const VOID* Gdtr
+    _In_ CONST VOID* Gdtr
     );
 
 INT32
