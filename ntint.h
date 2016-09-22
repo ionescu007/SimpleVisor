@@ -36,6 +36,12 @@ Environment:
 #define FALSE               0
 #endif
 
+#ifndef CONST
+#define CONST const
+#endif
+typedef char CHAR;
+typedef CONST CHAR *LPCCH, *PCCH;
+
 #define KERNEL_STACK_SIZE   24 * 1024
 
 typedef struct DECLSPEC_ALIGN(16) _M128A

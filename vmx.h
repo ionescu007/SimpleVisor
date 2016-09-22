@@ -82,6 +82,7 @@ typedef union _KGDTENTRY64
         INT64 DataHigh;
     };
 } KGDTENTRY64, *PKGDTENTRY64;
+typedef const KGDTENTRY64* PCKGDTENTRY64;
 
 #pragma pack(push,4)
 typedef struct _KTSS64

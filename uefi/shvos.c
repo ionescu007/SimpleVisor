@@ -75,7 +75,7 @@ EFI_MP_SERVICES_PROTOCOL* _gPiMpService;
 EFI_STATUS
 __forceinline
 ShvOsErrorToError (
-    const INT32 Error
+    CONST INT32 Error
     )
 {
     //
@@ -106,7 +106,7 @@ ShvOsErrorToError (
 
 VOID
 _str (
-    _Out_ UINT16* const Tr
+    _Out_ UINT16* Tr
     )
 {
     //
@@ -117,7 +117,7 @@ _str (
 
 VOID
 _sldt (
-    _Out_ UINT16* const Ldtr
+    _Out_ UINT16* Ldtr
     )
 {
     //
@@ -128,7 +128,7 @@ _sldt (
 
 VOID
 __lgdt (
-    _In_ const IA32_DESCRIPTOR* const Gdtr
+    _In_ CONST IA32_DESCRIPTOR* Gdtr
     )
 {
     //
@@ -139,7 +139,7 @@ __lgdt (
 
 VOID
 ShvOsUnprepareProcessor (
-    _In_ PCSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     )
 {
     UNREFERENCED_PARAMETER(VpData);
@@ -151,7 +151,7 @@ ShvOsUnprepareProcessor (
 
 INT32
 ShvOsPrepareProcessor (
-    _In_ PCSHV_VP_DATA const VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     )
 {
     PKGDTENTRY64 TssEntry, NewGdt;
@@ -227,8 +227,8 @@ ShvOsPrepareProcessor (
 
 VOID
 ShvOsRunCallbackOnProcessors (
-    _In_ const SHV_CPU_CALLBACK *const Routine,
-    _Inout_ VOID* Context
+    _In_ PSHV_CPU_CALLBACK Routine,
+    _Inout_opt_ VOID *Context
     )
 {
     //
@@ -250,8 +250,8 @@ ShvOsRunCallbackOnProcessors (
 
 VOID
 ShvOsFreeContiguousAlignedMemory (
-    _In_ _Post_ptr_invalid_ VOID* const BaseAddress,
-    _In_ size_t Size
+    _In_ _Frees_ptr_ VOID* CONST BaseAddress,
+    _In_ CONST size_t Size
     )
 {
     //
@@ -260,10 +260,11 @@ ShvOsFreeContiguousAlignedMemory (
     FreeAlignedPages(BaseAddress, Size);
 }
 
+_Ret_maybenull_
 _When_(return != NULL, _Post_writable_byte_size_(Size))
 VOID*
 ShvOsAllocateContigousAlignedMemory (
-    _In_ const size_t Size
+    _In_ CONST size_t Size
     )
 {
     //
@@ -274,7 +275,7 @@ ShvOsAllocateContigousAlignedMemory (
 
 UINT64
 ShvOsGetPhysicalAddress (
-    _In_ VOID* const BaseAddress
+    _In_ VOID *BaseAddress
     )
 {
     //
@@ -333,7 +334,7 @@ ShvOsGetActiveProcessorCount (
 
 VOID
 ShvOsDebugPrintWide (
-    _In_z_ _Printf_format_string_ const CHAR16* const Format,
+    _In_z_ _Printf_format_string_ CONST CHAR16* CONST Format,
     ...
     )
 {

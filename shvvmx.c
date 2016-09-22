@@ -24,7 +24,7 @@ Environment:
 
 VOID
 ShvVmxEptInitialize (
-    _Inout_ PSHV_VP_DATA const VpData
+    _Inout_ PSHV_VP_DATA CONST VpData
     )
 {
     UINT64 i;
@@ -55,10 +55,10 @@ ShvVmxEptInitialize (
 
 UINT8
 ShvVmxEnterRootModeOnVp (
-    _Inout_ PSHV_VP_DATA const VpData
+    _Inout_ PSHV_VP_DATA CONST VpData
     )
 {
-    PSHV_SPECIAL_REGISTERS const Registers = &VpData->SpecialRegisters;
+    PSHV_SPECIAL_REGISTERS CONST Registers = &VpData->SpecialRegisters;
 
     //
     // Ensure the the VMCS can fit into a single page
@@ -161,11 +161,11 @@ ShvVmxEnterRootModeOnVp (
 
 VOID
 ShvVmxSetupVmcsForVp (
-    _In_ PCSHV_VP_DATA const VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     )
 {
-    PCSHV_SPECIAL_REGISTERS const state = &VpData->SpecialRegisters;
-    const CONTEXT *const context = &VpData->ContextFrame;
+    PCSHV_SPECIAL_REGISTERS CONST state = &VpData->SpecialRegisters;
+    CONST CONTEXT *CONST context = &VpData->ContextFrame;
     VMX_GDTENTRY64 vmxGdtEntry;
 
     //
@@ -444,7 +444,7 @@ ShvVmxProbe (
 
 INT32
 ShvVmxLaunchOnVp (
-    _Inout_ PSHV_VP_DATA const VpData
+    _Inout_ PSHV_VP_DATA CONST VpData
     )
 {
     UINT32 i;

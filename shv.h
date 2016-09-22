@@ -46,9 +46,9 @@ typedef const SHV_VP_STATE *PCSHV_VP_STATE;
 typedef struct _SHV_CALLBACK_CONTEXT
 {
     UINT64 Cr3;
-    volatile long InitCount;
-    INT32 FailedCpu;
-    INT32 FailureStatus;
+    _Field_range_(>=, 0) volatile long InitCount;
+    _Field_range_(>=, -1) INT32 FailedCpu;
+    _Field_range_(SHV_STATUS_NOT_PRESENT, SHV_STATUS_SUCCESS) INT32 FailureStatus;
 } SHV_CALLBACK_CONTEXT, *PSHV_CALLBACK_CONTEXT;
 
 SHV_CPU_CALLBACK ShvVpLoadCallback;
@@ -61,22 +61,24 @@ ShvVmxEntry (
 
 INT32
 ShvVmxLaunchOnVp (
-    _Inout_ PSHV_VP_DATA const VpData
+    _Inout_ PSHV_VP_DATA CONST VpData
     );
 
 VOID
 ShvUtilConvertGdtEntry (
-    _In_ VOID* GdtBase,
-    _In_ const UINT16 Offset,
-    _Out_ PVMX_GDTENTRY64 const VmxGdtEntry
+    _In_ VOID* CONST GdtBase,
+    _In_ CONST UINT16 Offset,
+    _Out_ PVMX_GDTENTRY64 CONST VmxGdtEntry
     );
 
 UINT32
 ShvUtilAdjustMsr (
-    _In_ const LARGE_INTEGER ControlValue,
+    _In_ CONST LARGE_INTEGER ControlValue,
     _In_ UINT32 DesiredValue
     );
 
+_Ret_maybenull_
+_When_ (return != NULL, _Post_writable_size_(CpuCount))
 PSHV_VP_DATA
 ShvVpAllocateData (
     _In_ UINT32 CpuCount
@@ -100,7 +102,7 @@ ShvVmxProbe (
 
 VOID
 ShvVmxEptInitialize (
-    _Inout_ PSHV_VP_DATA const VpData
+    _Inout_ PSHV_VP_DATA CONST VpData
     );
 
 DECLSPEC_NORETURN
@@ -116,7 +118,7 @@ DECLSPEC_NORETURN
 VOID
 __cdecl
 ShvOsRestoreContext (
-    _In_ PCONTEXT const ContextRecord
+    _In_ PCONTEXT ContextRecord
     );
 
 VOID
@@ -126,19 +128,21 @@ ShvOsCaptureContext (
 
 VOID
 ShvOsUnprepareProcessor (
-    _In_ PCSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     );
 
 INT32
 ShvOsPrepareProcessor (
-    _In_ PCSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     );
 
+_Ret_range_(>=, 0)
 INT32
 ShvOsGetActiveProcessorCount (
     VOID
     );
 
+_Ret_range_(>=, 0)
 INT32
 ShvOsGetCurrentProcessorNumber (
     VOID
@@ -146,10 +150,11 @@ ShvOsGetCurrentProcessorNumber (
 
 VOID
 ShvOsFreeContiguousAlignedMemory (
-    _In_ _Post_ptr_invalid_ VOID* BaseAddress,
-    _In_ size_t Size
+    _In_ _Frees_ptr_ VOID* CONST BaseAddress,
+    _In_ CONST size_t Size
     );
 
+_Ret_maybenull_
 _When_ (return != NULL, _Post_writable_byte_size_ (Size))
 VOID*
 ShvOsAllocateContigousAlignedMemory (
@@ -158,19 +163,19 @@ ShvOsAllocateContigousAlignedMemory (
 
 UINT64
 ShvOsGetPhysicalAddress (
-    _In_ VOID* BaseAddress
+    _In_ VOID *BaseAddress
     );
 
 #ifndef __BASE_H__
 VOID
 ShvOsDebugPrint (
-    _In_z_ _Printf_format_string_ const char* Format,
+    _In_z_ _Printf_format_string_ PCCH CONST Format,
     ...
     );
 #else
 VOID
 ShvOsDebugPrintWide (
-    _In_z_ _Printf_format_string_ const CHAR16* Format,
+    _In_z_ _Printf_format_string_ CONST CHAR16* CONST Format,
     ...
     );
 #define ShvOsDebugPrint(format, ...) ShvOsDebugPrintWide(_CRT_WIDE(format), __VA_ARGS__)
@@ -178,7 +183,7 @@ ShvOsDebugPrintWide (
 
 VOID
 ShvOsRunCallbackOnProcessors (
-    _In_ SHV_CPU_CALLBACK *Routine,
+    _In_ PSHV_CPU_CALLBACK Routine,
     _Inout_opt_ VOID* Context
     );
 

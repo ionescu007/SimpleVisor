@@ -57,7 +57,7 @@ ShvIsOurHypervisorPresent (
 
 VOID
 ShvCaptureSpecialRegisters (
-    _Out_ PSHV_SPECIAL_REGISTERS const SpecialRegisters
+    _Out_ PSHV_SPECIAL_REGISTERS CONST SpecialRegisters
     )
 {
     //
@@ -109,9 +109,10 @@ ShvVpRestoreAfterLaunch (
     ShvOsRestoreContext(&vpData->ContextFrame);
 }
 
+_Success_(return == SHV_STATUS_SUCCESS)
 INT32
 ShvVpInitialize (
-    _Inout_ PSHV_VP_DATA const Data
+    _Inout_ PSHV_VP_DATA CONST Data
     )
 {
     INT32 status;
@@ -146,6 +147,10 @@ ShvVpInitialize (
         // If the AC bit is not set in EFLAGS, it means that we have not yet
         // launched the VM. Attempt to initialize VMX on this processor.
         //
+
+        //
+        // NOTE: why isn't status checked?
+        //
         status = ShvVmxLaunchOnVp(Data);
     }
 
@@ -157,7 +162,7 @@ ShvVpInitialize (
 
 VOID
 ShvVpUnloadCallback (
-    _Inout_ PSHV_CALLBACK_CONTEXT const Context
+    _Inout_ PSHV_CALLBACK_CONTEXT CONST Context
     )
 {
     INT32 cpuInfo[4];
@@ -182,6 +187,8 @@ ShvVpUnloadCallback (
     }
 }
 
+_Ret_maybenull_
+_When_ (return != NULL, _Post_writable_size_(CpuCount))
 PSHV_VP_DATA
 ShvVpAllocateData (
     _In_ UINT32 CpuCount
@@ -221,7 +228,7 @@ ShvVpFreeData (
 
 VOID
 ShvVpLoadCallback (
-    _Inout_ PSHV_CALLBACK_CONTEXT const Context
+    _Inout_ PSHV_CALLBACK_CONTEXT CONST Context
     )
 {
     PSHV_VP_DATA vpData;
@@ -283,7 +290,7 @@ ShvVpLoadCallback (
     //
     // This CPU is hyperjacked!
     //
-    _InterlockedIncrement((volatile long*)&Context->InitCount);
+    _InterlockedIncrement(&Context->InitCount);
     return;
 
 Failure:

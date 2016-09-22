@@ -70,14 +70,14 @@ typedef struct _SHV_DPC_CONTEXT
 
 VOID
 ShvVmxCleanup (
-    _In_ const UINT16 Data,
-    _In_ const UINT16 Teb
+    _In_ UINT16 Data,
+    _In_ UINT16 Teb
     );
 
 NTSTATUS
 FORCEINLINE
 ShvOsErrorToError (
-    const INT32 Error
+    CONST INT32 Error
     )
 {
     //
@@ -153,7 +153,7 @@ ShvOsDpcRoutine (
 
 VOID
 ShvOsPrepareProcessor (
-    _In_ PCSHV_VP_DATA VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     )
 {
     //
@@ -165,7 +165,7 @@ ShvOsPrepareProcessor (
 
 VOID
 ShvOsUnprepareProcessor (
-    _In_ PCSHV_VP_DATA const VpData
+    _In_ PCSHV_VP_DATA CONST VpData
     )
 {
     //
@@ -185,7 +185,7 @@ ShvOsUnprepareProcessor (
 //
 VOID
 ShvOsFreeContiguousAlignedMemory (
-    _In_ _Post_ptr_invalid_ PVOID const BaseAddress
+    _In_ _Frees_ptr_ PVOID CONST BaseAddress
     )
 {
     //
@@ -194,10 +194,11 @@ ShvOsFreeContiguousAlignedMemory (
     MmFreeContiguousMemory(BaseAddress);
 }
 
+_Ret_maybenull_
 _When_(return != NULL, _Post_writable_byte_size_(Size))
 PVOID
 ShvOsAllocateContigousAlignedMemory (
-    _In_ SIZE_T const Size
+    _In_ SIZE_T CONST Size
     )
 {
     PHYSICAL_ADDRESS lowest, highest;
@@ -222,7 +223,7 @@ ShvOsAllocateContigousAlignedMemory (
 
 ULONGLONG
 ShvOsGetPhysicalAddress (
-    _In_ VOID *const BaseAddress
+    _In_ VOID *CONST BaseAddress
     )
 {
     //
@@ -237,8 +238,8 @@ ShvOsGetPhysicalAddress (
 
 VOID
 ShvOsRunCallbackOnProcessors (
-    _In_ SHV_CPU_CALLBACK *const Routine,
-    _Inout_opt_ PVOID const Context
+    _In_ PSHV_CPU_CALLBACK Routine,
+    _Inout_opt_ VOID *Context
     )
 {
     SHV_DPC_CONTEXT dpcContext;
@@ -255,7 +256,7 @@ DECLSPEC_NORETURN
 VOID
 __cdecl
 ShvOsRestoreContext (
-    _In_ PCONTEXT const ContextRecord
+    _In_ PCONTEXT ContextRecord
     )
 {
     //
@@ -270,7 +271,7 @@ ShvOsRestoreContext (
 
 VOID
 ShvOsCaptureContext (
-    _Out_ PCONTEXT const ContextRecord
+    _Out_ PCONTEXT ContextRecord
     )
 {
     //
@@ -279,6 +280,7 @@ ShvOsCaptureContext (
     RtlCaptureContext(ContextRecord);
 }
 
+_Ret_range_(>=, 0)
 INT32
 ShvOsGetCurrentProcessorNumber (
     VOID
@@ -290,6 +292,7 @@ ShvOsGetCurrentProcessorNumber (
     return (INT32)KeGetCurrentProcessorNumberEx(NULL);
 }
 
+_Ret_range_(>=, 0)
 INT32
 ShvOsGetActiveProcessorCount (
     VOID
@@ -303,7 +306,7 @@ ShvOsGetActiveProcessorCount (
 
 VOID
 ShvOsDebugPrint (
-    _In_z_ _Printf_format_string_ PCCH const Format,
+    _In_z_ _Printf_format_string_ PCCH CONST Format,
     ...
     )
 {
