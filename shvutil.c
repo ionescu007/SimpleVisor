@@ -24,12 +24,12 @@ Environment:
 
 VOID
 ShvUtilConvertGdtEntry (
-    _In_ VOID* GdtBase,
-    _In_ UINT16 Selector,
-    _Out_ PVMX_GDTENTRY64 VmxGdtEntry
+    _In_ VOID* CONST GdtBase,
+    _In_ CONST UINT16 Selector,
+    _Out_ PVMX_GDTENTRY64 CONST VmxGdtEntry
     )
 {
-    PKGDTENTRY64 gdtEntry;
+    PCKGDTENTRY64 gdtEntry;
 
     //
     // Reject LDT or NULL entries
@@ -90,7 +90,7 @@ ShvUtilConvertGdtEntry (
 
 UINT32
 ShvUtilAdjustMsr (
-    _In_ LARGE_INTEGER ControlValue,
+    _In_ CONST LARGE_INTEGER ControlValue,
     _In_ UINT32 DesiredValue
     )
 {
