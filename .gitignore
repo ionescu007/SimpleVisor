@@ -1,6 +1,2 @@
-*.opendb
-shv.sdf
-x64/Optimized
-*.suo
-*.user
-*.db
+x64
+.vs

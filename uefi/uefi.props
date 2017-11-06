@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup>
+    <GenerateManifest />
+    <TargetExt>.efi</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <Optimization>MinSpace</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <OmitFramePointers>true</OmitFramePointers>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <ExceptionHandling>SyncCThrow</ExceptionHandling>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <ControlFlowGuard>false</ControlFlowGuard>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <ForcedIncludeFiles>$(EDK_PATH)\..\EDK-II\BaseLib\vshacks.h</ForcedIncludeFiles>
+      <CallingConvention />
+      <TreatWChar_tAsBuiltInType />
+      <StringPooling>true</StringPooling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <ForceConformanceInForLoopScope />
+      <AdditionalOptions>/Gs32768 %(AdditionalOptions)</AdditionalOptions>
+      <ErrorReporting />
+      <FloatingPointModel />
+    </ClCompile>
+    <Link>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <AdditionalDependencies>UefiHiiLib.lib;UefiHiiServicesLib.lib;UefiSortLib.lib;UefiShellLib.lib;GlueLib.lib;BaseLib.lib;BaseDebugPrintErrorLevelLib.lib;BasePrintLib.lib;UefiLib.lib;UefiBootServicesTableLib.lib;UefiRuntimeServicesTableLib.lib;UefiDevicePathLibDevicePathProtocol.lib;UefiDebugLibConOut.lib;UefiMemoryLib.lib;UefiMemoryAllocationLib.lib;BaseSynchronizationLib.lib;UefiFileHandleLib.lib;UefiApplicationEntryPoint.lib</AdditionalDependencies>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
+      <SubSystem>EFI Application</SubSystem>
+      <Driver>Driver</Driver>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding />
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <BaseAddress>0</BaseAddress>
+      <SectionAlignment>32</SectionAlignment>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <RandomizedBaseAddress />
+      <DataExecutionPrevention />
+      <ManifestFile />
+      <AllowIsolation />
+      <EnableUAC />
+      <UACExecutionLevel />
+      <UACUIAccess />
+      <TypeLibraryResourceID />
+      <AdditionalOptions>/OPT:ICF=10 /IGNORE:4001 /IGNORE:4254 %(AdditionalOptions)</AdditionalOptions>
+      <MergeSections>.rdata=.data</MergeSections>
+      <SpecifySectionAttributes>.xdata,D</SpecifySectionAttributes>
+      <LinkErrorReporting />
+      <ProfileGuidedDatabase />
+      <EntryPointSymbol>EfiMain</EntryPointSymbol>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

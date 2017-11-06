@@ -49,8 +49,8 @@ Environment:
 //
 // External SimpleVisor Headers
 //
-#include "ntint.h"
-#include "shv_x.h"
+#include "..\ntint.h"
+#include "..\shv_x.h"
 
 //
 // We run on any UEFI Specification

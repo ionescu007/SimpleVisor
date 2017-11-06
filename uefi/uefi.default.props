@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <EDK_PATH>C:\Users\aione\Documents\GitHub\VisualUefi\edk2</EDK_PATH>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IncludePath>$(EDK_PATH)\MdePkg\Include;$(EDK_PATH)\MdePkg\Include\X64;$(EDK_PATH)\ShellPkg\Include;$(EDK_PATH)\CryptoPkg\Include</IncludePath>
+    <LibraryPath>$(EDK_PATH)\..\EDK-II\$(Platform)\Release</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <BuildMacro Include="EDK_PATH">
+      <Value>$(EDK_PATH)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

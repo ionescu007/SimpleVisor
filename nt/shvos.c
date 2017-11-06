@@ -22,7 +22,7 @@ Environment:
 
 #include <ntifs.h>
 #include <stdarg.h>
-#include "shv_x.h"
+#include "..\shv_x.h"
 #pragma warning(disable:4221)
 #pragma warning(disable:4204)
 
