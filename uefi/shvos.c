@@ -268,7 +268,7 @@ ShvOsAllocateContigousAlignedMemory (
     //
     // Allocate a contiguous chunk of RAM to back this allocation.
     //
-    return AllocateAlignedRuntimePages(Size, EFI_PAGE_SIZE);
+    return AllocateAlignedRuntimePages(EFI_SIZE_TO_PAGES(Size), EFI_PAGE_SIZE);
 }
 
 UINT64
