@@ -152,7 +152,7 @@ ShvVpInitialize (
     //
     // If we got here, the hypervisor is running :-)
     //
-    return SHV_STATUS_SUCCESS;
+    return status;
 }
 
 VOID
@@ -229,7 +229,7 @@ ShvVpLoadCallback (
     INT32 status;
 
     vpData = NULL;
-    
+
     //
     // Detect if the hardware appears to support VMX root mode to start.
     // No attempts are made to enable this if it is lacking or disabled.

@@ -58,6 +58,11 @@ Environment:
 extern CONST UINT32 _gUefiDriverRevision = 0;
 
 //
+// We support unload
+//
+const UINT8 _gDriverUnloadImageCount = 1;
+
+//
 // Our name
 //
 CHAR8 *gEfiCallerBaseName = "SimpleVisor";
@@ -257,7 +262,7 @@ ShvOsFreeContiguousAlignedMemory (
     //
     // Free the memory
     //
-    FreeAlignedPages(BaseAddress, Size);
+    FreeAlignedPages(BaseAddress, EFI_SIZE_TO_PAGES(Size));
 }
 
 VOID*

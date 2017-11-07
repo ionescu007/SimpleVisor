@@ -257,12 +257,13 @@ ShvVmxEnterRootModeOnVp (
     {
         return FALSE;
     }
- 
+
     //
     // Clear the state of the VMCS, setting it to Inactive
     //
     if (__vmx_vmclear(&VpData->VmcsPhysicalAddress))
     {
+        __vmx_off();
         return FALSE;
     }
 
@@ -271,6 +272,7 @@ ShvVmxEnterRootModeOnVp (
     //
     if (__vmx_vmptrld(&VpData->VmcsPhysicalAddress))
     {
+        __vmx_off();
         return FALSE;
     }
 
