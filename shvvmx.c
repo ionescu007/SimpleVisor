@@ -135,7 +135,7 @@ ShvVmxEptInitialize (
     //
     tempEpdpte.AsUlonglong = 0;
     tempEpdpte.Read = tempEpdpte.Write = tempEpdpte.Execute = 1;
-    
+
     //
     // Construct EPT identity map for every 1GB of RAM
     //
@@ -339,6 +339,7 @@ ShvVmxSetupVmcsForVp (
     __vmx_vmwrite(SECONDARY_VM_EXEC_CONTROL,
                            ShvUtilAdjustMsr(VpData->MsrData[11],
                                             SECONDARY_EXEC_ENABLE_RDTSCP |
+                                            SECONDARY_EXEC_ENABLE_INVPCID |
                                             SECONDARY_EXEC_XSAVES |
                                             VpData->EptControls));
 
