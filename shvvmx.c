@@ -331,7 +331,7 @@ ShvVmxSetupVmcsForVp (
     // Enable support for RDTSCP and XSAVES/XRESTORES in the guest. Windows 10
     // makes use of both of these instructions if the CPU supports it. By using
     // ShvUtilAdjustMsr, these options will be ignored if this processor does
-    // not actully support the instructions to begin with.
+    // not actually support the instructions to begin with.
     //
     // Also enable EPT support, for additional performance and ability to trap
     // memory access efficiently.

@@ -4,7 +4,7 @@
 ;
 ; Module:
 ;
-;    shvx64.asm
+;    shvosx64.asm
 ;
 ; Abstract:
 ;

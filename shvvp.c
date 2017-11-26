@@ -135,7 +135,7 @@ ShvVpInitialize (
     // Then, capture the entire register state. We will need this, as once we
     // launch the VM, it will begin execution at the defined guest instruction
     // pointer, which we set to ShvVpRestoreAfterLaunch, with the registers set
-    // to whatever value they were deep inside the VMCS/VMX inialization code.
+    // to whatever value they were deep inside the VMCS/VMX initialization code.
     // By using RtlRestoreContext, that function sets the AC flag in EFLAGS and
     // returns here with our registers restored.
     //
@@ -178,6 +178,7 @@ ShvVpUnloadCallback (
     //
     if (cpuInfo[2] == 0x43434343)
     {
+        __analysis_assume((cpuInfo[0] != 0) && (cpuInfo[1] != 0));
         vpData = (PSHV_VP_DATA)((UINT64)cpuInfo[0] << 32 | (UINT32)cpuInfo[1]);
         ShvOsFreeContiguousAlignedMemory(vpData, sizeof(*vpData));
     }

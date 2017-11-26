@@ -384,7 +384,7 @@ UefiMain (
                                     &_gPiMpService);
     if (EFI_ERROR(efiStatus))
     {
-        Print(L"Unable to locate the MpServices procotol: %r\n", efiStatus);
+        Print(L"Unable to locate the MpServices protocol: %r\n", efiStatus);
         return efiStatus;
     }
 
