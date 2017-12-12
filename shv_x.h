@@ -38,7 +38,7 @@ struct _SHV_CALLBACK_CONTEXT;
 typedef
 void
 SHV_CPU_CALLBACK (
-    struct _SHV_CALLBACK_CONTEXT* Context
+    _In_ struct _SHV_CALLBACK_CONTEXT* Context
     );
 typedef SHV_CPU_CALLBACK *PSHV_CPU_CALLBACK;
 

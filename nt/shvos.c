@@ -52,6 +52,8 @@ KeSignalCallDpcSynchronize (
     _In_ PVOID SystemArgument2
     );
 
+DRIVER_INITIALIZE DriverEntry;
+
 DECLSPEC_NORETURN
 VOID
 __cdecl
@@ -120,6 +122,10 @@ ShvOsDpcRoutine (
     PSHV_DPC_CONTEXT dpcContext = DeferredContext;
     UNREFERENCED_PARAMETER(Dpc);
 
+    __analysis_assume(DeferredContext != NULL);
+    __analysis_assume(SystemArgument1 != NULL);
+    __analysis_assume(SystemArgument2 != NULL);
+
     //
     // Execute the internal callback function
     //
@@ -137,7 +143,7 @@ ShvOsDpcRoutine (
     // thread, that's perfectly fine (albeit unusual). If the DPC interrupted a
     // 64-bit long-mode thread, that's also fine. However if the DPC interrupts
     // a thread in compatibility-mode, running as part of WoW64, it will hit a
-    // GPF instantenously and crash.
+    // GPF instantaneously and crash.
     //
     // Thus, set the segments to their correct value, one more time, as a fix.
     //

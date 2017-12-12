@@ -102,9 +102,9 @@ ShvVmxHandleCpuid (
     INT32 cpu_info[4];
 
     //
-    // Check for the magic CPUID sequence, and check that it is is coming from
+    // Check for the magic CPUID sequence, and check that it is coming from
     // Ring 0. Technically we could also check the RIP and see if this falls
-    // in the expected function, but we may want to allow a sepaarate "unload"
+    // in the expected function, but we may want to allow a separate "unload"
     // driver or code at some point.
     //
     if ((VpState->VpRegs->Rax == 0x41414141) &&
