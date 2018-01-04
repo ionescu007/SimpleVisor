@@ -74,7 +74,7 @@ You must have administrative rights for usage of any of these commands.
 
 ## References
 
-If you would ike to know more about my research or work, I invite you check out my blog at http://www.alex-ionescu.com as well as my training & consulting company, Winsider Seminars & Solutions Inc., at http://www.windows-internals.com.
+If you would like to know more about my research or work, I invite you check out my blog at http://www.alex-ionescu.com as well as my training & consulting company, Winsider Seminars & Solutions Inc., at http://www.windows-internals.com.
 
 https://github.com/upring/virtdbg
 
