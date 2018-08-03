@@ -361,12 +361,10 @@ ShvVmxSetupVmcsForVp (
                                             CPU_BASED_ACTIVATE_SECONDARY_CONTROLS));
 
     //
-    // If any interrupts were pending upon entering the hypervisor, acknowledge
-    // them when we're done. And make sure to enter us in x64 mode at all times
+    // Make sure to enter us in x64 mode at all times.
     //
     __vmx_vmwrite(VM_EXIT_CONTROLS,
                            ShvUtilAdjustMsr(VpData->MsrData[15],
-                                            VM_EXIT_ACK_INTR_ON_EXIT |
                                             VM_EXIT_IA32E_MODE));
 
     //
