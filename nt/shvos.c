@@ -418,6 +418,17 @@ DriverEntry (
     //
     // Load the hypervisor
     //
-    return ShvOsErrorToError(ShvLoad());
+    status = ShvOsErrorToError(ShvLoad());
+
+    //
+    // If load of the hypervisor happened to fail, unregister previously registered
+    // power callback, otherwise we would get BSOD on shutdown.
+    //
+    if (!NT_SUCCESS(status))
+    {
+        ExUnregisterCallback(g_PowerCallbackRegistration);
+    }
+
+    return status;
 }
 
