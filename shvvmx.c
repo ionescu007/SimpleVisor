@@ -96,7 +96,7 @@ ShvVmxMtrrAdjustEffectiveMemoryType (
             // Check if this large page falls within the boundary. If a single
             // physical page (4KB) touches it, we need to override the entire 2MB.
             //
-            if (((LargePageAddress + _2MB - 1) >= VpData->MtrrData[i].PhysicalAddressMin) &&
+            if (((LargePageAddress + (_2MB - 1)) >= VpData->MtrrData[i].PhysicalAddressMin) &&
                 (LargePageAddress <= VpData->MtrrData[i].PhysicalAddressMax))
             {
                 //
