@@ -35,9 +35,10 @@
     <ClCompile Include="shvvmx.c" />
     <ClCompile Include="shvvmxhv.c" />
     <ClCompile Include="shvvp.c" />
-    <ClCompile Include="$(Configuration)\shvos.c"/>
+    <ClCompile Include="$(Configuration)\shvos.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ia32.h" />
     <ClInclude Include="shv.h" />
     <ClInclude Include="ntint.h" />
     <ClInclude Include="shv_x.h" />
@@ -45,6 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <MASM Include="shvvmxhvx64.asm" />
-    <MASM Include="$(Configuration)\shvosx64.asm"/>
+    <MASM Include="$(Configuration)\shvosx64.asm" />
   </ItemGroup>
 </Project>

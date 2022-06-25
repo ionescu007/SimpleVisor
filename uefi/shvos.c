@@ -49,8 +49,10 @@ Environment:
 //
 // External SimpleVisor Headers
 //
+
 #include "..\ntint.h"
 #include "..\shv_x.h"
+#include "..\ia32.h"
 
 //
 // We run on any UEFI Specification
@@ -262,7 +264,7 @@ ShvOsFreeContiguousAlignedMemory (
     //
     // Free the memory
     //
-    FreeAlignedPages(BaseAddress, EFI_SIZE_TO_PAGES(Size));
+    gBS->FreePages((EFI_PHYSICAL_ADDRESS)BaseAddress, EFI_SIZE_TO_PAGES(Size));
 }
 
 VOID*
@@ -273,7 +275,9 @@ ShvOsAllocateContigousAlignedMemory (
     //
     // Allocate a contiguous chunk of RAM to back this allocation.
     //
-    return AllocateAlignedRuntimePages(EFI_SIZE_TO_PAGES(Size), EFI_PAGE_SIZE);
+    EFI_PHYSICAL_ADDRESS address = MAX_UINT64;
+    gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(Size), &address);
+    return (void*)address;
 }
 
 UINT64
@@ -349,7 +353,6 @@ ShvOsDebugPrintWide (
     //
     VA_START(arglist, Format);
     debugString = CatVSPrint(NULL, Format, arglist);
-    Print(debugString);
     FreePool(debugString);
     VA_END(arglist);
 }
@@ -367,6 +370,34 @@ UefiUnload (
     return EFI_SUCCESS;
 }
 
+INTN ShvCreateNewPageTableIdentityMap()
+{
+    VMX_EPML4E* pml4 = ShvOsAllocateContigousAlignedMemory(sizeof(VMX_EPML4E) * PML4E_ENTRY_COUNT);
+    VMX_HUGE_PDPTE* pdpt = ShvOsAllocateContigousAlignedMemory(sizeof(VMX_HUGE_PDPTE) * PDPTE_ENTRY_COUNT);
+
+	//
+    // Fill out the EPML4E which covers the first 512GB of RAM
+    //
+    pml4->Read = 1;
+    pml4->Write = 1;
+    pml4->Execute = 1;
+    pml4->PageFrameNumber = ShvOsGetPhysicalAddress(pdpt) / PAGE_SIZE;
+
+    //
+    // Fill out a RWX PDPTE
+    //
+    pdpt->AsUlonglong = 0;
+    pdpt->Read = pdpt->Write = pdpt->Execute = 1;
+    pdpt->Large = 1;
+
+    __stosq((UINT64*)pdpt, pdpt->AsUlonglong, PDPTE_ENTRY_COUNT);
+    for (size_t i = 0; i < PDPTE_ENTRY_COUNT; i++)
+    {
+        (pdpt + i)->PageFrameNumber = (i * 1024 *  1024 * 1024) / PAGE_SIZE; // 1 GB
+    }
+    return (INTN)pml4;
+}
+
 EFI_STATUS
 EFIAPI
 UefiMain (
@@ -375,7 +406,13 @@ UefiMain (
     )
 {
     EFI_STATUS efiStatus;
-
+	
+    Print(L"Create new page tables\n");
+    CR3 cr3;
+    cr3.AsUInt = AsmReadCr3();
+    cr3.AddressOfPageDirectory = ShvCreateNewPageTableIdentityMap() / PAGE_SIZE;
+    AsmWriteCr3(cr3.AsUInt);
+    
     //
     // Find the PI MpService protocol used for multi-processor startup
     //
