@@ -28,6 +28,7 @@ Environment:
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/DevicePathLib.h>
 
 //
 // Boot and Runtime Services
@@ -276,7 +277,7 @@ ShvOsAllocateContigousAlignedMemory (
     // Allocate a contiguous chunk of RAM to back this allocation.
     //
     EFI_PHYSICAL_ADDRESS address = MAX_UINT64;
-    gBS->AllocatePages(AllocateAnyPages, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(Size), &address);
+    gBS->AllocatePages(AllocateMaxAddress, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(Size), &address);
     return (void*)address;
 }
 
@@ -372,30 +373,88 @@ UefiUnload (
 
 INTN ShvCreateNewPageTableIdentityMap()
 {
-    VMX_EPML4E* pml4 = ShvOsAllocateContigousAlignedMemory(sizeof(VMX_EPML4E) * PML4E_ENTRY_COUNT);
-    VMX_HUGE_PDPTE* pdpt = ShvOsAllocateContigousAlignedMemory(sizeof(VMX_HUGE_PDPTE) * PDPTE_ENTRY_COUNT);
-
+    PML4E_64* pml4 = ShvOsAllocateContigousAlignedMemory(sizeof(PML4E_64) * PML4E_ENTRY_COUNT);
+    __stosb((unsigned char*)pml4, 0, sizeof(PML4E_64) * PML4E_ENTRY_COUNT);
+	PDPTE_64* pdpt = ShvOsAllocateContigousAlignedMemory(sizeof(PDPTE_64) * PDPTE_ENTRY_COUNT);
+    __stosb((unsigned char*)pdpt, 0, sizeof(PDPTE_64) * PDPTE_ENTRY_COUNT);
+    PDE_2MB_64 (*pde)[PDE_ENTRY_COUNT] = ShvOsAllocateContigousAlignedMemory(sizeof(PDE_2MB_64) * PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
+    __stosb((unsigned char*)pde, 0, sizeof(PDE_2MB_64) * PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
+	
 	//
-    // Fill out the EPML4E which covers the first 512GB of RAM
+    // Fill out the PML4E which covers the first 512GB of RAM
     //
-    pml4->Read = 1;
+    pml4->AsUInt = 0;
+	pml4->Present = 1;
     pml4->Write = 1;
-    pml4->Execute = 1;
     pml4->PageFrameNumber = ShvOsGetPhysicalAddress(pdpt) / PAGE_SIZE;
 
     //
     // Fill out a RWX PDPTE
     //
-    pdpt->AsUlonglong = 0;
-    pdpt->Read = pdpt->Write = pdpt->Execute = 1;
-    pdpt->Large = 1;
-
-    __stosq((UINT64*)pdpt, pdpt->AsUlonglong, PDPTE_ENTRY_COUNT);
+    pdpt->AsUInt = 0;
+    pdpt->Present = 1;
+    pdpt->Write = 1;
+    __stosq((UINT64*)pdpt, pdpt->AsUInt, PDPTE_ENTRY_COUNT);
     for (size_t i = 0; i < PDPTE_ENTRY_COUNT; i++)
     {
-        (pdpt + i)->PageFrameNumber = (i * 1024 *  1024 * 1024) / PAGE_SIZE; // 1 GB
+        //
+        // Set the page frame number of the PDE table
+        //
+        pdpt[i].PageFrameNumber = ShvOsGetPhysicalAddress(&pde[i][0]) / PAGE_SIZE;
+    }
+	
+    PDE_2MB_64 tempPde;
+    tempPde.AsUInt = 0;
+    tempPde.Present = 1;
+    tempPde.Write = 1;
+    tempPde.LargePage = 1;
+    __stosq((UINT64*)pde, tempPde.AsUInt, PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
+    for (size_t i = 0; i < PDPTE_ENTRY_COUNT; i++) {
+        // Construct EPT identity map for every 2MB of RAM
+        for (size_t j = 0; j < PDE_ENTRY_COUNT; j++) {
+            pde[i][j].PageFrameNumber = (i * 512) + j;
+        }
     }
     return (INTN)pml4;
+}
+
+void ShvLoadAndStartFile(EFI_HANDLE currentImage, CHAR16* filePath)
+{
+    size_t numberOfFileSystemHandles;
+    EFI_HANDLE* fileSystems;
+    gBS->LocateHandleBuffer(ByProtocol,
+							&gEfiSimpleFileSystemProtocolGuid,
+							NULL,
+							&numberOfFileSystemHandles,
+							&fileSystems);
+	
+    // Iterate all file systems.
+    for (size_t i = 0; i < numberOfFileSystemHandles; ++i) {
+    	EFI_DEVICE_PATH* devicePath = FileDevicePath(fileSystems[i], filePath);
+        if (NULL == devicePath) {
+            continue;
+        }
+    	
+        // Load the image from the specified path.
+        EFI_HANDLE newImage;
+        EFI_STATUS status = gBS->LoadImage(FALSE,
+										   currentImage,
+										   devicePath,
+										   NULL,
+										   0,
+										   &newImage);
+
+        // If failed, continue to another file system.
+        if (EFI_ERROR(status)) {
+        	FreePool(devicePath);
+            continue;
+        }
+
+        // Start the image.
+        gBS->StartImage(newImage, NULL, NULL);
+        FreePool(devicePath);
+    }
+    FreePool(fileSystems);
 }
 
 EFI_STATUS
@@ -410,7 +469,7 @@ UefiMain (
     Print(L"Create new page tables\n");
     CR3 cr3;
     cr3.AsUInt = AsmReadCr3();
-    cr3.AddressOfPageDirectory = ShvCreateNewPageTableIdentityMap() / PAGE_SIZE;
+    cr3.AddressOfPageDirectory = (UINT64)ShvCreateNewPageTableIdentityMap() / PAGE_SIZE;
     AsmWriteCr3(cr3.AsUInt);
     
     //
@@ -425,9 +484,10 @@ UefiMain (
         return efiStatus;
     }
 
-    //
     // Call the hypervisor entrypoint
-    //
-    return ShvOsErrorToError(ShvLoad());
-}
+    ShvOsErrorToError(ShvLoad());
 
+    // Load windows
+    ShvLoadAndStartFile(ImageHandle, L"\\EFI\\Boot\\bootx64.efi");
+	return EFI_LOAD_ERROR;
+}
