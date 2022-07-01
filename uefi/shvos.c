@@ -347,14 +347,11 @@ ShvOsDebugPrintWide (
     )
 {
     VA_LIST arglist;
-    CHAR16* debugString;
 
     //
     // Call the debugger API
     //
     VA_START(arglist, Format);
-    debugString = CatVSPrint(NULL, Format, arglist);
-    FreePool(debugString);
     VA_END(arglist);
 }
 

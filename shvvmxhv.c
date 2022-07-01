@@ -231,7 +231,7 @@ ShvVmxHandleCrAccess (
                 wantedCr0.ProtectionEnable = tempCr0.ProtectionEnable;
             	
                 ShvSwitchGuestMode();
-                __vmx_vmwrite(VMCS_GUEST_CR0, currentCr0.AsUInt);
+                __vmx_vmwrite(VMCS_GUEST_CR0, wantedCr0.AsUInt);
 
             } else {
                 __vmx_vmwrite(VMCS_GUEST_CR0, ShvAdjustCr0(newCrValue));
@@ -246,6 +246,27 @@ ShvVmxHandleCrAccess (
         default:
             break;
     }
+}
+
+VOID
+ShvVmxHandleMsrRead(
+    _In_ PSHV_VP_STATE VpState
+)
+{
+    UINT64 msr = VpState->VpRegs->Rcx;
+    UINT64 msrData = __readmsr((UINT32)msr);
+    VpState->VpRegs->Rax = msrData & MAX_UINT32;
+    VpState->VpRegs->Rdx = (msrData >> 32) & MAX_UINT32;
+}
+
+VOID
+ShvVmxHandleMsrWrite(
+    _In_ PSHV_VP_STATE VpState
+)
+{
+    UINT64 msr = VpState->VpRegs->Rcx;
+    UINT64 msrData = (VpState->VpRegs->Rax & MAX_UINT32) | ((VpState->VpRegs->Rdx >> 32) & MAX_UINT32);
+    __writemsr((UINT32)msr, msrData);
 }
 
 VOID
@@ -273,6 +294,12 @@ ShvVmxHandleExit (
         break;
     case EXIT_REASON_CR_ACCESS:
         ShvVmxHandleCrAccess(VpState);
+        break;
+    case EXIT_REASON_MSR_READ:
+        ShvVmxHandleMsrRead(VpState);
+    	break;
+    case EXIT_REASON_MSR_WRITE:
+        ShvVmxHandleMsrWrite(VpState);
         break;
     case EXIT_REASON_VMCALL:
     case EXIT_REASON_VMCLEAR:

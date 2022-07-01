@@ -341,6 +341,9 @@ ShvVmxSetupVmcsForVp (
                                             SECONDARY_EXEC_ENABLE_RDTSCP |
                                             SECONDARY_EXEC_ENABLE_INVPCID |
                                             SECONDARY_EXEC_XSAVES |
+											SECONDARY_EXEC_UNRESTRICTED_GUEST |
+											SECONDARY_EXEC_ENABLE_EPT |
+											SECONDARY_EXEC_ENABLE_VPID |
                                             VpData->EptControls));
 
     //
@@ -473,6 +476,7 @@ ShvVmxSetupVmcsForVp (
     //
     // Load CR0
     //
+    __vmx_vmwrite(CR0_GUEST_HOST_MASK, MAX_UINT64);
     __vmx_vmwrite(CR0_READ_SHADOW, state->Cr0);
     __vmx_vmwrite(HOST_CR0, state->Cr0);
     __vmx_vmwrite(GUEST_CR0, state->Cr0);
@@ -491,6 +495,7 @@ ShvVmxSetupVmcsForVp (
     __vmx_vmwrite(HOST_CR4, state->Cr4);
     __vmx_vmwrite(GUEST_CR4, state->Cr4);
     __vmx_vmwrite(CR4_READ_SHADOW, state->Cr4);
+    __vmx_vmwrite(CR4_GUEST_HOST_MASK, MAX_UINT64);
 
     //
     // Load debug MSR and register (DR7)
