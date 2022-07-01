@@ -281,7 +281,10 @@ ShvVmxHandleExit (
     // INVD, XSETBV and other VMX instructions. GETSEC cannot happen as we do
     // not run in SMX context.
     //
-    switch (VpState->ExitReason)
+    if (EXIT_REASON_CPUID != VpState->ExitReason) {
+        ShvOsDebugPrintWide(L"Vm exit number: %d\n", VpState->ExitReason);
+    }
+	switch (VpState->ExitReason)
     {
     case EXIT_REASON_CPUID:
         ShvVmxHandleCpuid(VpState);

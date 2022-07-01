@@ -385,7 +385,7 @@ ShvOsDebugPrintWide (
     // Call the debugger API
     //
     VA_START(arglist, Format);
-    size_t size = AsciiBSPrintUnicodeFormat(message, MAX_MESSAGE_SIZE, Format, (BASE_LIST)arglist);
+    size_t size = AsciiVSPrintUnicodeFormat(message, MAX_MESSAGE_SIZE, Format, arglist);
     VA_END(arglist);
     SerialPortWrite(message, size);
 }
