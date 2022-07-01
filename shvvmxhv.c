@@ -20,6 +20,7 @@ Environment:
 
 --*/
 
+#include "ia32.h"
 #include "shv.h"
 
 DECLSPEC_NORETURN
@@ -154,7 +155,14 @@ ShvVmxHandleXsetbv (
     _In_ PSHV_VP_STATE VpState
     )
 {
+	//
+    // Execution of the XSETBV instruction requires the host CR4 OSXSAVE bit to be set.
     //
+    CR4 cr4;
+    cr4.AsUInt = __readcr4();
+    cr4.OsXsave = TRUE;
+    __writecr4(cr4.AsUInt);
+	//
     // Simply issue the XSETBV instruction on the native logical processor.
     //
 
@@ -180,6 +188,67 @@ ShvVmxHandleVmx (
 }
 
 VOID
+ShvSwitchGuestMode()
+{
+    IA32_EFER_REGISTER guestEfer;
+	guestEfer.AsUInt = ShvVmxRead(VMCS_GUEST_EFER);
+    guestEfer.Ia32EModeActive = guestEfer.Ia32EModeEnable;
+    __vmx_vmwrite(VMCS_GUEST_EFER, guestEfer.AsUInt);
+
+    IA32_VMX_ENTRY_CTLS_REGISTER vmEntryControls;
+    vmEntryControls.AsUInt = ShvVmxRead(VMCS_CTRL_VMENTRY_CONTROLS);
+    vmEntryControls.Ia32EModeGuest = guestEfer.Ia32EModeEnable;
+    __vmx_vmwrite(VMCS_CTRL_VMENTRY_CONTROLS, vmEntryControls.AsUInt);
+}
+
+VOID
+ShvVmxHandleCrAccess (
+    _In_ PSHV_VP_STATE VpState
+)
+{
+    VMX_EXIT_QUALIFICATION_MOV_CR qualification;
+    qualification.AsUInt = ShvVmxRead(VMCS_EXIT_QUALIFICATION);
+    UINT64 newCrValue = ShvSelectEffectiveRegister(VpState->VpRegs, qualification.GeneralPurposeRegister);
+
+    if (VMX_EXIT_QUALIFICATION_ACCESS_MOV_TO_CR != qualification.AccessType) {
+        return;
+    }
+	
+    switch (qualification.ControlRegister)
+    {
+		case VMX_EXIT_QUALIFICATION_REGISTER_CR0:
+            __vmx_vmwrite(VMCS_CTRL_CR0_READ_SHADOW, newCrValue);
+            CR0 wantedCr0;
+            wantedCr0.AsUInt = newCrValue;
+            CR0 currentCr0;
+            currentCr0.AsUInt = ShvVmxRead(VMCS_GUEST_CR0);
+            if (wantedCr0.ProtectionEnable != currentCr0.ProtectionEnable || wantedCr0.PagingEnable != currentCr0.PagingEnable) {
+                CR0 tempCr0;
+                tempCr0.AsUInt = wantedCr0.AsUInt;
+                wantedCr0.AsUInt = ShvAdjustCr0(wantedCr0.AsUInt);
+
+            	wantedCr0.PagingEnable = tempCr0.PagingEnable;
+                wantedCr0.ProtectionEnable = tempCr0.ProtectionEnable;
+            	
+                ShvSwitchGuestMode();
+                __vmx_vmwrite(VMCS_GUEST_CR0, currentCr0.AsUInt);
+
+            } else {
+                __vmx_vmwrite(VMCS_GUEST_CR0, ShvAdjustCr0(newCrValue));
+            }
+    		__writecr0(ShvAdjustCr0(newCrValue));
+    		break;
+        case VMX_EXIT_QUALIFICATION_REGISTER_CR4:
+            __vmx_vmwrite(VMCS_CTRL_CR4_READ_SHADOW, newCrValue);
+            __vmx_vmwrite(VMCS_GUEST_CR4, ShvAdjustCr4(newCrValue));
+            __writecr4(ShvAdjustCr4(newCrValue));
+            break;
+        default:
+            break;
+    }
+}
+
+VOID
 ShvVmxHandleExit (
     _In_ PSHV_VP_STATE VpState
     )
@@ -201,6 +270,9 @@ ShvVmxHandleExit (
         break;
     case EXIT_REASON_XSETBV:
         ShvVmxHandleXsetbv(VpState);
+        break;
+    case EXIT_REASON_CR_ACCESS:
+        ShvVmxHandleCrAccess(VpState);
         break;
     case EXIT_REASON_VMCALL:
     case EXIT_REASON_VMCLEAR:

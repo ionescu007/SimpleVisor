@@ -180,5 +180,20 @@ ShvOsRunCallbackOnProcessors (
     _In_opt_ VOID* Context
     );
 
-extern PSHV_VP_DATA* ShvGlobalData;
+unsigned long long
+ShvSelectEffectiveRegister (
+    _In_ PCONTEXT guestContext,
+    _In_ UINT64 registerIndex
+	);
 
+UINT64
+ShvAdjustCr0 (
+    _In_ UINT64 cr0
+	);
+
+UINT64
+ShvAdjustCr4(
+    _In_ UINT64 cr4
+	);
+
+extern PSHV_VP_DATA* ShvGlobalData;
