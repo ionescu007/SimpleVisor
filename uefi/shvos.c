@@ -25,7 +25,7 @@ Environment:
 //
 #include <Uefi.h>
 #include <Library/UefiLib.h>
-#include <Library/DebugLib.h>
+#include <Library/PrintLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
@@ -46,6 +46,7 @@ Environment:
 // Variable Arguments (CRT)
 //
 #include <varargs.h>
+#include <intrin.h>
 
 //
 // External SimpleVisor Headers
@@ -79,6 +80,13 @@ EFI_MP_SERVICES_PROTOCOL* _gPiMpService;
 // TSS Segment we will use
 //
 #define KGDT64_SYS_TSS          0x60
+
+//
+// COM1
+//
+#define PORT 0x3f8
+
+#define MAX_MESSAGE_SIZE 0x200
 
 EFI_STATUS
 __forceinline
@@ -315,6 +323,31 @@ ShvOsGetCurrentProcessorNumber (
     return (INT32)cpuIndex;
 }
 
+VOID
+SerialPortInit(
+    VOID
+	)
+{
+   __outbyte(PORT + 1, 0x00);
+   __outbyte(PORT + 3, 0x80);
+   __outbyte(PORT + 0, 0x03);
+   __outbyte(PORT + 1, 0x00);
+   __outbyte(PORT + 3, 0x03);
+   __outbyte(PORT + 2, 0xC7);
+   __outbyte(PORT + 4, 0x0B);
+   __outbyte(PORT + 4, 0x1E);
+   __outbyte(PORT + 4, 0x0F);
+}
+
+VOID
+SerialPortWrite(
+    CHAR8* string,
+    size_t size
+	)
+{
+    __outbytestring(PORT, (unsigned char*)string, (unsigned long)size);
+}
+
 INT32
 ShvOsGetActiveProcessorCount (
     VOID
@@ -347,12 +380,14 @@ ShvOsDebugPrintWide (
     )
 {
     VA_LIST arglist;
-
+    CHAR8 message[MAX_MESSAGE_SIZE];
     //
     // Call the debugger API
     //
     VA_START(arglist, Format);
+    size_t size = AsciiBSPrintUnicodeFormat(message, MAX_MESSAGE_SIZE, Format, (BASE_LIST)arglist);
     VA_END(arglist);
+    SerialPortWrite(message, size);
 }
 
 EFI_STATUS
@@ -461,6 +496,7 @@ UefiMain (
     IN EFI_SYSTEM_TABLE* SystemTable
     )
 {
+    SerialPortInit();
     EFI_STATUS efiStatus;
 	
     Print(L"Create new page tables\n");
