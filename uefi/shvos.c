@@ -29,6 +29,7 @@ Environment:
 #include <Library/MemoryAllocationLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
+#include <Protocol/LoadedImage.h>
 
 //
 // Boot and Runtime Services
@@ -497,7 +498,16 @@ UefiMain (
     )
 {
     SerialPortInit();
-    EFI_STATUS efiStatus;
+
+    EFI_LOADED_IMAGE_PROTOCOL* imageInfo;
+    EFI_STATUS efiStatus = gBS->OpenProtocol(gImageHandle,
+        &gEfiLoadedImageProtocolGuid,
+        (VOID**)&imageInfo,
+        gImageHandle,
+        NULL,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+
+    ShvOsDebugPrintWide(L"Loaded image base address is: %llx\n", imageInfo->ImageBase);
 	
     Print(L"Create new page tables\n");
     CR3 cr3;

@@ -127,11 +127,10 @@ ShvVmxHandleCpuid (
     //
     if (VpState->VpRegs->Rax == 1)
     {
-        //
-        // Set the Hypervisor Present-bit in RCX, which Intel and AMD have both
-        // reserved for this indication.
-        //
-        cpu_info[2] |= HYPERV_HYPERVISOR_PRESENT_BIT;
+        CPUID_EAX_01 cpuid;
+        cpuid.CpuidFeatureInformationEcx.AsUInt = cpu_info[2];
+        cpuid.CpuidFeatureInformationEcx.VirtualMachineExtensions = FALSE;
+        cpu_info[2] |= cpuid.CpuidFeatureInformationEcx.AsUInt;
     }
     else if (VpState->VpRegs->Rax == HYPERV_CPUID_INTERFACE)
     {
