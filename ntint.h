@@ -21,6 +21,7 @@ Environment:
 --*/
 
 #pragma once
+#pragma pack(push, 1)
 #pragma warning(disable:4201)
 #pragma warning(disable:4214)
 
@@ -148,3 +149,5 @@ typedef union _LARGE_INTEGER
     };
     UINT64 QuadPart;
 } LARGE_INTEGER, *PLARGE_INTEGER;
+
+#pragma pack(pop)

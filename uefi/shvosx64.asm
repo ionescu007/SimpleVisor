@@ -52,6 +52,14 @@
     mov     [rcx+0E8h], r14
     mov     [rcx+0F0h], r15
 
+    movdqu  [rcx+0198h], xmm0
+    movdqu  [rcx+01a8h], xmm1
+    movdqu  [rcx+01b8h], xmm2
+    movdqu  [rcx+01c8h], xmm3
+    movdqu  [rcx+01d8h], xmm4
+    movdqu  [rcx+01e8h], xmm5
+
+
     lea     rax, [rsp+10h]
     mov     [rcx+98h], rax
     mov     rax, [rsp+8]
@@ -81,6 +89,13 @@
     mov     r9, [rcx+0C0h]
     mov     r10, [rcx+0C8h]
     mov     r11, [rcx+0D0h]
+
+    movdqu  xmm0, [rcx+0198h] 
+    movdqu  xmm1, [rcx+01a8h] 
+    movdqu  xmm2, [rcx+01b8h] 
+    movdqu  xmm3, [rcx+01c8h] 
+    movdqu  xmm4, [rcx+01d8h] 
+    movdqu  xmm5, [rcx+01e8h] 
     cli
 
     mov     rbx, [rcx+90h]
