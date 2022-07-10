@@ -154,13 +154,7 @@ ShvVmxHandleXsetbv (
     _In_ PSHV_VP_STATE VpState
     )
 {
-	//
-    // Execution of the XSETBV instruction requires the host CR4 OSXSAVE bit to be set.
-    //
-    CR4 cr4;
-    cr4.AsUInt = __readcr4();
-    cr4.OsXsave = TRUE;
-    __writecr4(cr4.AsUInt);
+	
 	//
     // Simply issue the XSETBV instruction on the native logical processor.
     //
@@ -235,12 +229,10 @@ ShvVmxHandleCrAccess (
             } else {
                 __vmx_vmwrite(VMCS_GUEST_CR0, ShvAdjustCr0(newCrValue));
             }
-    		__writecr0(ShvAdjustCr0(newCrValue));
     		break;
         case VMX_EXIT_QUALIFICATION_REGISTER_CR4:
             __vmx_vmwrite(VMCS_CTRL_CR4_READ_SHADOW, newCrValue);
             __vmx_vmwrite(VMCS_GUEST_CR4, ShvAdjustCr4(newCrValue));
-            __writecr4(ShvAdjustCr4(newCrValue));
             break;
         default:
             break;

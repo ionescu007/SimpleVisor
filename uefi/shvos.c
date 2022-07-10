@@ -53,6 +53,7 @@ Environment:
 // External SimpleVisor Headers
 //
 
+#include "..\shv.h"
 #include "..\ntint.h"
 #include "..\shv_x.h"
 #include "..\ia32.h"
@@ -176,6 +177,14 @@ ShvOsPrepareProcessor (
     KDESCRIPTOR Gdtr;
 
     //
+    // Execution of the XSETBV instruction requires the host CR4 OSXSAVE bit to be set.
+    //
+    CR4 cr4;
+    cr4.AsUInt = __readcr4();
+    cr4.OsXsave = TRUE;
+    __writecr4(cr4.AsUInt);
+
+    //
     // Clear AC in case it's not been reset yet
     //
     __writeeflags(__readeflags() & ~EFLAGS_ALIGN_CHECK);
@@ -188,8 +197,7 @@ ShvOsPrepareProcessor (
     //
     // Allocate a new GDT as big as the old one, or to cover selector 0x60
     //
-    NewGdt = AllocateRuntimeZeroPool(MAX(Gdtr.Limit + 1,
-                                     KGDT64_SYS_TSS + sizeof(*TssEntry)));
+    NewGdt = ShvOsAllocateContigousAlignedMemory(MAX(Gdtr.Limit + 1, KGDT64_SYS_TSS + sizeof(*TssEntry)));
     if (NewGdt == NULL)
     {
         return SHV_STATUS_NO_RESOURCES;
@@ -203,10 +211,10 @@ ShvOsPrepareProcessor (
     //
     // Allocate a TSS
     //
-    Tss = AllocateRuntimeZeroPool(sizeof(*Tss));
+    Tss = ShvOsAllocateContigousAlignedMemory(sizeof(*Tss));
     if (Tss == NULL)
     {
-        FreePool(NewGdt);
+        ShvOsFreeContiguousAlignedMemory(NewGdt, MAX(Gdtr.Limit + 1, KGDT64_SYS_TSS + sizeof(*TssEntry)));
         return SHV_STATUS_NO_RESOURCES;
     }
 
@@ -287,6 +295,7 @@ ShvOsAllocateContigousAlignedMemory (
     //
     EFI_PHYSICAL_ADDRESS address = MAX_UINT64;
     gBS->AllocatePages(AllocateMaxAddress, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(Size), &address);
+    __stosb((unsigned char*)address, 0, Size);
     return (void*)address;
 }
 
@@ -376,7 +385,7 @@ ShvOsGetActiveProcessorCount (
 
 VOID
 ShvOsDebugPrintWide (
-    _In_ CHAR16* Format,
+    _In_ const CHAR16* Format,
     ...
     )
 {
@@ -407,11 +416,8 @@ UefiUnload (
 INTN ShvCreateNewPageTableIdentityMap()
 {
     PML4E_64* pml4 = ShvOsAllocateContigousAlignedMemory(sizeof(PML4E_64) * PML4E_ENTRY_COUNT);
-    __stosb((unsigned char*)pml4, 0, sizeof(PML4E_64) * PML4E_ENTRY_COUNT);
 	PDPTE_64* pdpt = ShvOsAllocateContigousAlignedMemory(sizeof(PDPTE_64) * PDPTE_ENTRY_COUNT);
-    __stosb((unsigned char*)pdpt, 0, sizeof(PDPTE_64) * PDPTE_ENTRY_COUNT);
     PDE_2MB_64 (*pde)[PDE_ENTRY_COUNT] = ShvOsAllocateContigousAlignedMemory(sizeof(PDE_2MB_64) * PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
-    __stosb((unsigned char*)pde, 0, sizeof(PDE_2MB_64) * PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
 	
 	//
     // Fill out the PML4E which covers the first 512GB of RAM
