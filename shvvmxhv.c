@@ -127,10 +127,7 @@ ShvVmxHandleCpuid (
     //
     if (VpState->VpRegs->Rax == 1)
     {
-        CPUID_EAX_01 cpuid;
-        cpuid.CpuidFeatureInformationEcx.AsUInt = cpu_info[2];
-        cpuid.CpuidFeatureInformationEcx.VirtualMachineExtensions = FALSE;
-        cpu_info[2] |= cpuid.CpuidFeatureInformationEcx.AsUInt;
+        ((CPUID_EAX_01*)&cpu_info)->CpuidFeatureInformationEcx.VirtualMachineExtensions = FALSE;
     }
     else if (VpState->VpRegs->Rax == HYPERV_CPUID_INTERFACE)
     {
@@ -181,16 +178,16 @@ ShvVmxHandleVmx (
 }
 
 VOID
-ShvSwitchGuestMode()
+ShvSwitchGuestMode(UINT64 isPagingEnabled)
 {
     IA32_EFER_REGISTER guestEfer;
 	guestEfer.AsUInt = ShvVmxRead(VMCS_GUEST_EFER);
-    guestEfer.Ia32EModeActive = guestEfer.Ia32EModeEnable;
+    guestEfer.Ia32EModeActive = isPagingEnabled;
     __vmx_vmwrite(VMCS_GUEST_EFER, guestEfer.AsUInt);
 
     IA32_VMX_ENTRY_CTLS_REGISTER vmEntryControls;
     vmEntryControls.AsUInt = ShvVmxRead(VMCS_CTRL_VMENTRY_CONTROLS);
-    vmEntryControls.Ia32EModeGuest = guestEfer.Ia32EModeEnable;
+    vmEntryControls.Ia32EModeGuest = guestEfer.Ia32EModeActive;
     __vmx_vmwrite(VMCS_CTRL_VMENTRY_CONTROLS, vmEntryControls.AsUInt);
 }
 
@@ -215,7 +212,7 @@ ShvVmxHandleCrAccess (
             wantedCr0.AsUInt = newCrValue;
             CR0 currentCr0;
             currentCr0.AsUInt = ShvVmxRead(VMCS_GUEST_CR0);
-            if (wantedCr0.ProtectionEnable != currentCr0.ProtectionEnable || wantedCr0.PagingEnable != currentCr0.PagingEnable) {
+            if (wantedCr0.PagingEnable != currentCr0.PagingEnable || !wantedCr0.PagingEnable) {
                 CR0 tempCr0;
                 tempCr0.AsUInt = wantedCr0.AsUInt;
                 wantedCr0.AsUInt = ShvAdjustCr0(wantedCr0.AsUInt);
@@ -223,7 +220,7 @@ ShvVmxHandleCrAccess (
             	wantedCr0.PagingEnable = tempCr0.PagingEnable;
                 wantedCr0.ProtectionEnable = tempCr0.ProtectionEnable;
             	
-                ShvSwitchGuestMode();
+                ShvSwitchGuestMode(wantedCr0.PagingEnable);
                 __vmx_vmwrite(VMCS_GUEST_CR0, wantedCr0.AsUInt);
 
             } else {
@@ -261,6 +258,146 @@ ShvVmxHandleMsrWrite(
 }
 
 VOID
+ShvVmxHandleInit(
+    _In_ PSHV_VP_STATE VpState
+)
+{
+    RFLAGS rflags;
+    rflags.AsUInt = 0;
+    rflags.ReadAs1 = 1;
+    __vmx_vmwrite(VMCS_GUEST_RFLAGS, rflags.AsUInt);
+    VpState->GuestEFlags = rflags.AsUInt;
+
+    __vmx_vmwrite(VMCS_GUEST_RIP, 0xfff0);
+    VpState->GuestRip = 0xfff0;
+
+    __vmx_vmwrite(VMCS_GUEST_RSP, 0);
+    VpState->GuestRsp = 0;
+
+    __writecr2(0);
+    __vmx_vmwrite(VMCS_GUEST_CR3, 0);
+
+    CR0 cr0;
+    cr0.AsUInt = ShvAdjustCr0(0x60000010);
+    cr0.PagingEnable = 0;
+    cr0.ProtectionEnable = 0;
+    __vmx_vmwrite(VMCS_GUEST_CR0, cr0.AsUInt);
+    __vmx_vmwrite(VMCS_CTRL_CR0_READ_SHADOW, 0x60000010);
+
+    __vmx_vmwrite(VMCS_GUEST_CR4, ShvAdjustCr4(0));
+    __vmx_vmwrite(VMCS_CTRL_CR4_READ_SHADOW, 0);
+
+    VMX_SEGMENT_ACCESS_RIGHTS accessRights;
+    accessRights.AsUInt = 0;
+
+    accessRights.Type = SEGMENT_DESCRIPTOR_TYPE_CODE_EXECUTE_READ_ACCESSED;
+    accessRights.DescriptorType = TRUE;
+    accessRights.Present = TRUE;
+    __vmx_vmwrite(VMCS_GUEST_CS_SELECTOR, 0xf000);
+    __vmx_vmwrite(VMCS_GUEST_CS_BASE, 0xffff0000);
+    __vmx_vmwrite(VMCS_GUEST_CS_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_CS_ACCESS_RIGHTS, accessRights.AsUInt);
+
+    accessRights.Type = SEGMENT_DESCRIPTOR_TYPE_DATA_READ_WRITE_ACCESSED;
+    __vmx_vmwrite(VMCS_GUEST_SS_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_SS_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_SS_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_SS_ACCESS_RIGHTS, accessRights.AsUInt);
+    __vmx_vmwrite(VMCS_GUEST_DS_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_DS_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_DS_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_DS_ACCESS_RIGHTS, accessRights.AsUInt);
+    __vmx_vmwrite(VMCS_GUEST_ES_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_ES_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_ES_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_ES_ACCESS_RIGHTS, accessRights.AsUInt);
+    __vmx_vmwrite(VMCS_GUEST_FS_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_FS_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_FS_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_FS_ACCESS_RIGHTS, accessRights.AsUInt);
+    __vmx_vmwrite(VMCS_GUEST_GS_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_GS_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_GS_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_GS_ACCESS_RIGHTS, accessRights.AsUInt);
+
+    int cpuId[4];
+    __cpuid(cpuId, CPUID_VERSION_INFORMATION);
+
+    CPUID_EAX_01 cpuVersionInfo;
+    cpuVersionInfo.CpuidVersionInformation.AsUInt = cpuId[0];
+    UINT64 extendedModel = cpuVersionInfo.CpuidVersionInformation.ExtendedModelId;
+    
+    VpState->VpRegs->Rdx = 0x600 | (extendedModel << 16);
+    VpState->VpRegs->Rbx = 0;
+    VpState->VpRegs->Rcx = 0;
+    VpState->VpRegs->Rsi = 0;
+    VpState->VpRegs->Rdi = 0;
+    VpState->VpRegs->Rbp = 0;
+
+    __vmx_vmwrite(VMCS_GUEST_GDTR_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_GDTR_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_IDTR_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_IDTR_LIMIT, 0xffff);
+
+    accessRights.Type = SEGMENT_DESCRIPTOR_TYPE_LDT;
+    accessRights.DescriptorType = FALSE;
+    __vmx_vmwrite(VMCS_GUEST_LDTR_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_LDTR_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_LDTR_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_LDTR_ACCESS_RIGHTS, accessRights.AsUInt);
+
+    accessRights.Type = SEGMENT_DESCRIPTOR_TYPE_TSS_BUSY;
+    __vmx_vmwrite(VMCS_GUEST_TR_SELECTOR, 0);
+    __vmx_vmwrite(VMCS_GUEST_TR_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_TR_LIMIT, 0xffff);
+    __vmx_vmwrite(VMCS_GUEST_TR_ACCESS_RIGHTS, accessRights.AsUInt);
+
+    __writedr(0, 0);
+    __writedr(1, 0);
+    __writedr(2, 0);
+    __writedr(3, 0);
+    __writedr(6, 0xffff0ff0);
+    __vmx_vmwrite(VMCS_GUEST_DR7, 0x400);
+
+    VpState->VpRegs->R8 = 0;
+    VpState->VpRegs->R9 = 0;
+    VpState->VpRegs->R10 = 0;
+    VpState->VpRegs->R11 = 0;
+    VpState->VpRegs->R12 = 0;
+    VpState->VpRegs->R13 = 0;
+    VpState->VpRegs->R14 = 0;
+    VpState->VpRegs->R15 = 0;
+
+    __vmx_vmwrite(VMCS_GUEST_BNDCFGS, 0);
+    __vmx_vmwrite(VMCS_GUEST_EFER, 0);
+    __vmx_vmwrite(VMCS_GUEST_FS_BASE, 0);
+    __vmx_vmwrite(VMCS_GUEST_GS_BASE, 0);
+
+    IA32_VMX_ENTRY_CTLS_REGISTER vmEntryControls;
+    vmEntryControls.AsUInt = ShvVmxRead(VMCS_CTRL_VMENTRY_CONTROLS);
+    vmEntryControls.Ia32EModeGuest = FALSE;
+    __vmx_vmwrite(VMCS_CTRL_VMENTRY_CONTROLS, vmEntryControls.AsUInt);
+
+    __vmx_vmwrite(VMCS_GUEST_ACTIVITY_STATE, VmxWaitForSipi);
+}
+
+VOID
+ShvVmxHandleSipi(
+    _In_ PSHV_VP_STATE VpState
+)
+{
+    UINT64 vector = ShvVmxRead(VMCS_EXIT_QUALIFICATION);
+    __vmx_vmwrite(VMCS_GUEST_RIP, 0);
+    VpState->VpRegs->Rip = 0;
+    VpState->GuestRip = 0;
+
+    __vmx_vmwrite(VMCS_GUEST_CS_SELECTOR, ((UINT64)vector) << 8);
+    __vmx_vmwrite(VMCS_GUEST_CS_BASE, ((UINT64)vector) << 12);
+    
+    __vmx_vmwrite(VMCS_GUEST_ACTIVITY_STATE, VmxActive);
+}
+
+VOID
 ShvVmxHandleExit (
     _In_ PSHV_VP_STATE VpState
     )
@@ -272,9 +409,6 @@ ShvVmxHandleExit (
     // INVD, XSETBV and other VMX instructions. GETSEC cannot happen as we do
     // not run in SMX context.
     //
-    if (EXIT_REASON_CPUID != VpState->ExitReason) {
-        ShvOsDebugPrintWide(L"Vm exit number: %d\n", VpState->ExitReason);
-    }
 	switch (VpState->ExitReason)
     {
     case EXIT_REASON_CPUID:
@@ -294,6 +428,12 @@ ShvVmxHandleExit (
     	break;
     case EXIT_REASON_MSR_WRITE:
         ShvVmxHandleMsrWrite(VpState);
+        break;
+    case EXIT_REASON_INIT:
+        ShvVmxHandleInit(VpState);
+        break;
+    case EXIT_REASON_SIPI:
+        ShvVmxHandleSipi(VpState);
         break;
     case EXIT_REASON_VMCALL:
     case EXIT_REASON_VMCLEAR:
