@@ -26,6 +26,8 @@ Environment:
 
 #ifndef __BASE_H__
 #include <basetsd.h>
+#define MAX_UINT32 0xFFFFFFFF
+#define MAX_UINT64 0xFFFFFFFFFFFFFFFF
 #endif
 #define _INC_MALLOC
 #include <intrin.h>
