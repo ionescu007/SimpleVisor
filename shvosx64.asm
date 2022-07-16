@@ -22,6 +22,28 @@
 
     .code
 
+    _str PROC
+        str word ptr [rcx]          ; Store TR value
+        ret                         ; Return
+    _str ENDP
+
+    _sldt PROC
+        sldt word ptr [rcx]         ; Store LDTR value
+        ret                         ; Return
+    _sldt ENDP
+
+    ShvVmxCleanup PROC
+        mov     ds, cx              ; set DS to parameter 1
+        mov     es, cx              ; set ES to parameter 1
+        mov     fs, dx              ; set FS to parameter 2
+        ret                         ; return
+    ShvVmxCleanup ENDP
+
+    __lgdt PROC
+        lgdt    fword ptr [rcx]     ; load the GDTR with the value in parameter 1
+        ret                         ; return
+    __lgdt ENDP
+    
     _ltr PROC
     ltr     cx
     _ltr ENDP

@@ -288,25 +288,6 @@ ShvOsRunCallbackOnProcessors (
     KeGenericCallDpc(ShvOsDpcRoutine, &dpcContext);
 }
 
-VOID
-ShvOsRestoreContext(
-    _In_ PCONTEXT ContextRecord
-    )
-{
-    ShvOsRestoreContext2(ContextRecord, NULL);
-}
-
-VOID
-ShvOsCaptureContext (
-    _In_ PCONTEXT ContextRecord
-    )
-{
-    //
-    // Windows provides a nice OS function to do this
-    //
-    RtlCaptureContext(ContextRecord);
-}
-
 INT32
 ShvOsGetCurrentProcessorNumber (
     VOID

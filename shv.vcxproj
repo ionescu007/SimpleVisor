@@ -45,7 +45,7 @@
     <ClInclude Include="vmx.h" />
   </ItemGroup>
   <ItemGroup>
+    <MASM Include="shvosx64.asm" />
     <MASM Include="shvvmxhvx64.asm" />
-    <MASM Include="$(Configuration)\shvosx64.asm" />
   </ItemGroup>
 </Project>

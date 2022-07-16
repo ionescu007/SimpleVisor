@@ -123,39 +123,6 @@ ShvOsErrorToError (
 }
 
 VOID
-_str (
-    _In_ UINT16* Tr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    *Tr = AsmReadTr();
-}
-
-VOID
-_sldt (
-    _In_ UINT16* Ldtr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    *Ldtr = AsmReadLdtr();
-}
-
-VOID
-__lgdt (
-    _In_ IA32_DESCRIPTOR* Gdtr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    AsmWriteGdtr(Gdtr);
-}
-
-VOID
 ShvOsUnprepareProcessor (
     _In_ PSHV_VP_DATA VpData
     )
