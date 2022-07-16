@@ -25,9 +25,11 @@ Environment:
 //
 #include <Uefi.h>
 #include <Library/UefiLib.h>
-#include <Library/DebugLib.h>
+#include <Library/PrintLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/DevicePathLib.h>
+#include <Protocol/LoadedImage.h>
 
 //
 // Boot and Runtime Services
@@ -45,12 +47,16 @@ Environment:
 // Variable Arguments (CRT)
 //
 #include <varargs.h>
+#include <intrin.h>
 
 //
 // External SimpleVisor Headers
 //
+
+#include "..\shv.h"
 #include "..\ntint.h"
 #include "..\shv_x.h"
+#include "..\ia32.h"
 
 //
 // We run on any UEFI Specification
@@ -76,6 +82,13 @@ EFI_MP_SERVICES_PROTOCOL* _gPiMpService;
 // TSS Segment we will use
 //
 #define KGDT64_SYS_TSS          0x60
+
+//
+// COM1
+//
+#define PORT 0x3f8
+
+#define MAX_MESSAGE_SIZE 0x200
 
 EFI_STATUS
 __forceinline
@@ -110,39 +123,6 @@ ShvOsErrorToError (
 }
 
 VOID
-_str (
-    _In_ UINT16* Tr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    *Tr = AsmReadTr();
-}
-
-VOID
-_sldt (
-    _In_ UINT16* Ldtr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    *Ldtr = AsmReadLdtr();
-}
-
-VOID
-__lgdt (
-    _In_ IA32_DESCRIPTOR* Gdtr
-    )
-{
-    //
-    // Use the UEFI framework function
-    //
-    AsmWriteGdtr(Gdtr);
-}
-
-VOID
 ShvOsUnprepareProcessor (
     _In_ PSHV_VP_DATA VpData
     )
@@ -164,6 +144,14 @@ ShvOsPrepareProcessor (
     KDESCRIPTOR Gdtr;
 
     //
+    // Execution of the XSETBV instruction requires the host CR4 OSXSAVE bit to be set.
+    //
+    CR4 cr4;
+    cr4.AsUInt = __readcr4();
+    cr4.OsXsave = TRUE;
+    __writecr4(cr4.AsUInt);
+
+    //
     // Clear AC in case it's not been reset yet
     //
     __writeeflags(__readeflags() & ~EFLAGS_ALIGN_CHECK);
@@ -176,8 +164,7 @@ ShvOsPrepareProcessor (
     //
     // Allocate a new GDT as big as the old one, or to cover selector 0x60
     //
-    NewGdt = AllocateRuntimeZeroPool(MAX(Gdtr.Limit + 1,
-                                     KGDT64_SYS_TSS + sizeof(*TssEntry)));
+    NewGdt = ShvOsAllocateContigousAlignedMemory(MAX(Gdtr.Limit + 1, KGDT64_SYS_TSS + sizeof(*TssEntry)));
     if (NewGdt == NULL)
     {
         return SHV_STATUS_NO_RESOURCES;
@@ -191,10 +178,10 @@ ShvOsPrepareProcessor (
     //
     // Allocate a TSS
     //
-    Tss = AllocateRuntimeZeroPool(sizeof(*Tss));
+    Tss = ShvOsAllocateContigousAlignedMemory(sizeof(*Tss));
     if (Tss == NULL)
     {
-        FreePool(NewGdt);
+        ShvOsFreeContiguousAlignedMemory(NewGdt, MAX(Gdtr.Limit + 1, KGDT64_SYS_TSS + sizeof(*TssEntry)));
         return SHV_STATUS_NO_RESOURCES;
     }
 
@@ -262,7 +249,7 @@ ShvOsFreeContiguousAlignedMemory (
     //
     // Free the memory
     //
-    FreeAlignedPages(BaseAddress, EFI_SIZE_TO_PAGES(Size));
+    gBS->FreePages((EFI_PHYSICAL_ADDRESS)BaseAddress, EFI_SIZE_TO_PAGES(Size));
 }
 
 VOID*
@@ -273,7 +260,10 @@ ShvOsAllocateContigousAlignedMemory (
     //
     // Allocate a contiguous chunk of RAM to back this allocation.
     //
-    return AllocateAlignedRuntimePages(EFI_SIZE_TO_PAGES(Size), EFI_PAGE_SIZE);
+    EFI_PHYSICAL_ADDRESS address = MAX_UINT64;
+    gBS->AllocatePages(AllocateMaxAddress, EfiRuntimeServicesData, EFI_SIZE_TO_PAGES(Size), &address);
+    __stosb((unsigned char*)address, 0, Size);
+    return (void*)address;
 }
 
 UINT64
@@ -310,6 +300,31 @@ ShvOsGetCurrentProcessorNumber (
     return (INT32)cpuIndex;
 }
 
+VOID
+SerialPortInit(
+    VOID
+	)
+{
+   __outbyte(PORT + 1, 0x00);
+   __outbyte(PORT + 3, 0x80);
+   __outbyte(PORT + 0, 0x03);
+   __outbyte(PORT + 1, 0x00);
+   __outbyte(PORT + 3, 0x03);
+   __outbyte(PORT + 2, 0xC7);
+   __outbyte(PORT + 4, 0x0B);
+   __outbyte(PORT + 4, 0x1E);
+   __outbyte(PORT + 4, 0x0F);
+}
+
+VOID
+SerialPortWrite(
+    CHAR8* string,
+    size_t size
+	)
+{
+    __outbytestring(PORT, (unsigned char*)string, (unsigned long)size);
+}
+
 INT32
 ShvOsGetActiveProcessorCount (
     VOID
@@ -337,21 +352,19 @@ ShvOsGetActiveProcessorCount (
 
 VOID
 ShvOsDebugPrintWide (
-    _In_ CHAR16* Format,
+    _In_ const CHAR16* Format,
     ...
     )
 {
     VA_LIST arglist;
-    CHAR16* debugString;
-
+    CHAR8 message[MAX_MESSAGE_SIZE];
     //
     // Call the debugger API
     //
     VA_START(arglist, Format);
-    debugString = CatVSPrint(NULL, Format, arglist);
-    Print(debugString);
-    FreePool(debugString);
+    size_t size = AsciiVSPrintUnicodeFormat(message, MAX_MESSAGE_SIZE, Format, arglist);
     VA_END(arglist);
+    SerialPortWrite(message, size);
 }
 
 EFI_STATUS
@@ -367,6 +380,89 @@ UefiUnload (
     return EFI_SUCCESS;
 }
 
+INTN ShvCreateNewPageTableIdentityMap()
+{
+    PML4E_64* pml4 = ShvOsAllocateContigousAlignedMemory(sizeof(PML4E_64) * PML4E_ENTRY_COUNT);
+	PDPTE_64* pdpt = ShvOsAllocateContigousAlignedMemory(sizeof(PDPTE_64) * PDPTE_ENTRY_COUNT);
+    PDE_2MB_64 (*pde)[PDE_ENTRY_COUNT] = ShvOsAllocateContigousAlignedMemory(sizeof(PDE_2MB_64) * PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
+	
+	//
+    // Fill out the PML4E which covers the first 512GB of RAM
+    //
+    pml4->AsUInt = 0;
+	pml4->Present = 1;
+    pml4->Write = 1;
+    pml4->PageFrameNumber = ShvOsGetPhysicalAddress(pdpt) / PAGE_SIZE;
+
+    //
+    // Fill out a RWX PDPTE
+    //
+    pdpt->AsUInt = 0;
+    pdpt->Present = 1;
+    pdpt->Write = 1;
+    __stosq((UINT64*)pdpt, pdpt->AsUInt, PDPTE_ENTRY_COUNT);
+    for (size_t i = 0; i < PDPTE_ENTRY_COUNT; i++)
+    {
+        //
+        // Set the page frame number of the PDE table
+        //
+        pdpt[i].PageFrameNumber = ShvOsGetPhysicalAddress(&pde[i][0]) / PAGE_SIZE;
+    }
+	
+    PDE_2MB_64 tempPde;
+    tempPde.AsUInt = 0;
+    tempPde.Present = 1;
+    tempPde.Write = 1;
+    tempPde.LargePage = 1;
+    __stosq((UINT64*)pde, tempPde.AsUInt, PDPTE_ENTRY_COUNT * PDE_ENTRY_COUNT);
+    for (size_t i = 0; i < PDPTE_ENTRY_COUNT; i++) {
+        // Construct EPT identity map for every 2MB of RAM
+        for (size_t j = 0; j < PDE_ENTRY_COUNT; j++) {
+            pde[i][j].PageFrameNumber = (i * 512) + j;
+        }
+    }
+    return (INTN)pml4;
+}
+
+void ShvLoadAndStartFile(EFI_HANDLE currentImage, CHAR16* filePath)
+{
+    size_t numberOfFileSystemHandles;
+    EFI_HANDLE* fileSystems;
+    gBS->LocateHandleBuffer(ByProtocol,
+							&gEfiSimpleFileSystemProtocolGuid,
+							NULL,
+							&numberOfFileSystemHandles,
+							&fileSystems);
+	
+    // Iterate all file systems.
+    for (size_t i = 0; i < numberOfFileSystemHandles; ++i) {
+    	EFI_DEVICE_PATH* devicePath = FileDevicePath(fileSystems[i], filePath);
+        if (NULL == devicePath) {
+            continue;
+        }
+    	
+        // Load the image from the specified path.
+        EFI_HANDLE newImage;
+        EFI_STATUS status = gBS->LoadImage(FALSE,
+										   currentImage,
+										   devicePath,
+										   NULL,
+										   0,
+										   &newImage);
+
+        // If failed, continue to another file system.
+        if (EFI_ERROR(status)) {
+        	FreePool(devicePath);
+            continue;
+        }
+
+        // Start the image.
+        gBS->StartImage(newImage, NULL, NULL);
+        FreePool(devicePath);
+    }
+    FreePool(fileSystems);
+}
+
 EFI_STATUS
 EFIAPI
 UefiMain (
@@ -374,8 +470,24 @@ UefiMain (
     IN EFI_SYSTEM_TABLE* SystemTable
     )
 {
-    EFI_STATUS efiStatus;
+    SerialPortInit();
 
+    EFI_LOADED_IMAGE_PROTOCOL* imageInfo;
+    EFI_STATUS efiStatus = gBS->OpenProtocol(gImageHandle,
+        &gEfiLoadedImageProtocolGuid,
+        (VOID**)&imageInfo,
+        gImageHandle,
+        NULL,
+        EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+
+    ShvOsDebugPrintWide(L"Loaded image base address is: %llx\n", imageInfo->ImageBase);
+	
+    Print(L"Create new page tables\n");
+    CR3 cr3;
+    cr3.AsUInt = AsmReadCr3();
+    cr3.AddressOfPageDirectory = (UINT64)ShvCreateNewPageTableIdentityMap() / PAGE_SIZE;
+    AsmWriteCr3(cr3.AsUInt);
+    
     //
     // Find the PI MpService protocol used for multi-processor startup
     //
@@ -388,9 +500,10 @@ UefiMain (
         return efiStatus;
     }
 
-    //
     // Call the hypervisor entrypoint
-    //
-    return ShvOsErrorToError(ShvLoad());
-}
+    ShvOsErrorToError(ShvLoad());
 
+    // Load windows
+    ShvLoadAndStartFile(ImageHandle, L"\\EFI\\Boot\\bootx64.efi");
+	return EFI_LOAD_ERROR;
+}

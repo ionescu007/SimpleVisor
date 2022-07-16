@@ -21,6 +21,7 @@ Environment:
 --*/
 
 #include "shv.h"
+#include "ia32.h"
 
 VOID
 ShvUtilConvertGdtEntry (
@@ -104,3 +105,67 @@ ShvUtilAdjustMsr (
     return DesiredValue;
 }
 
+unsigned long long
+ShvSelectEffectiveRegister (
+    _In_ PCONTEXT guestContext,
+    _In_ UINT64 registerIndex
+	)
+{
+    switch (registerIndex)
+    {
+    case 0:
+    	return guestContext->Rax;
+    case 1:
+        return guestContext->Rcx;
+    case 2:
+        return guestContext->Rdx;
+    case 3:
+        return guestContext->Rbx;
+    case 4:
+        return guestContext->Rsp;
+    case 5:
+        return guestContext->Rbp;
+    case 6:
+        return guestContext->Rsi;
+    case 7:
+        return guestContext->Rdi;
+    case 8:
+        return guestContext->R8;
+    case 9:
+        return guestContext->R9;
+    case 10:
+        return guestContext->R10;
+    case 11:
+    	return guestContext->R11;
+    case 12:
+    	return guestContext->R12;
+    case 13:
+    	return guestContext->R13;
+    case 14:
+    	return guestContext->R14;
+    case 15: 
+        return guestContext->R15;
+    default:
+        return 0;
+    }
+}
+
+UINT64
+ShvAdjustCr0 (
+    _In_ UINT64 cr0
+	)
+{
+	cr0 |= __readmsr(IA32_VMX_CR0_FIXED0);
+    cr0 &= __readmsr(IA32_VMX_CR0_FIXED1);
+    return cr0;
+}
+
+UINT64
+ShvAdjustCr4(
+    _In_ UINT64 cr4
+)
+{
+    cr4 |= __readmsr(IA32_VMX_CR4_FIXED0);
+    cr4 &= __readmsr(IA32_VMX_CR4_FIXED1);
+    return cr4;
+}

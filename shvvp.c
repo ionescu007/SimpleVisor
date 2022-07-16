@@ -132,6 +132,13 @@ ShvVpInitialize (
     ShvCaptureSpecialRegisters(&Data->SpecialRegisters);
 
     //
+    // Make sure the AC flags in the EFLAGS is cleared before capturing the
+    // register. This flag is checked as an indicator of whether the VM is
+    // launched below.
+    //
+    __writeeflags(__readeflags() & ~EFLAGS_ALIGN_CHECK);
+
+    //
     // Then, capture the entire register state. We will need this, as once we
     // launch the VM, it will begin execution at the defined guest instruction
     // pointer, which we set to ShvVpRestoreAfterLaunch, with the registers set
@@ -140,6 +147,7 @@ ShvVpInitialize (
     // returns here with our registers restored.
     //
     ShvOsCaptureContext(&Data->ContextFrame);
+
     if ((__readeflags() & EFLAGS_ALIGN_CHECK) == 0)
     {
         //
