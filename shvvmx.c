@@ -342,8 +342,6 @@ ShvVmxSetupVmcsForVp (
                                             SECONDARY_EXEC_ENABLE_INVPCID |
                                             SECONDARY_EXEC_XSAVES |
 											SECONDARY_EXEC_UNRESTRICTED_GUEST |
-											SECONDARY_EXEC_ENABLE_EPT |
-											SECONDARY_EXEC_ENABLE_VPID |
                                             VpData->EptControls));
 
     //
